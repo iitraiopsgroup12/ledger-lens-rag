@@ -30,6 +30,7 @@ class HTTPMCPClient(MCPClient):
         base_url: str,
         api_key: str,
         timeout: float = 30.0,
+        rpc_path: str = "/rpc",
     ):
         """Initialize HTTP MCP client.
 
@@ -41,6 +42,8 @@ class HTTPMCPClient(MCPClient):
         self.base_url = base_url
         self.api_key = api_key
         self.timeout = timeout
+        # JSON-RPC endpoint path (e.g. "/rpc" or "/jsonrpc")
+        self.rpc_path = rpc_path
         self.logger = logging.getLogger(__name__)
         self._request_id = 0
 
@@ -72,7 +75,7 @@ class HTTPMCPClient(MCPClient):
         ) as client:
             try:
                 response = await client.post(
-                    "/rpc",
+                    self.rpc_path,
                     json=request.model_dump(exclude_none=True),
                     headers=headers,
                 )

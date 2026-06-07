@@ -1,0 +1,132 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "RAG MCP Pipeline API",
+    "version": "0.1.0",
+    "description": "OpenAPI specification for the FastAPI endpoints that route requests to the RAG pipeline."
+  },
+  "servers": [
+    { "url": "http://localhost:8080", "description": "Local development" }
+  ],
+  "paths": {
+    "/query": {
+      "post": {
+        "summary": "Query the RAG pipeline",
+        "description": "Accepts a natural language query, user and company name. Requires a Bearer JWT in the Authorization header. The server stores session messages into FAISS and returns an LLM-generated answer.",
+        "operationId": "queryEndpoint",
+        "security": [ { "bearerAuth": [] } ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/QueryPayload" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response with generated answer",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PipelineResult" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - missing or invalid JWT",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } }
+            }
+          }
+        }
+      }
+    },
+    "/history": {
+      "get": {
+        "summary": "Get conversation history for the authenticated session",
+        "description": "Returns ordered conversation messages previously stored in the FAISS store for the session identified by the provided JWT.",
+        "operationId": "getHistory",
+        "security": [ { "bearerAuth": [] } ],
+        "responses": {
+          "200": {
+            "description": "Conversation history",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HistoryResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Provide a JWT in the Authorization header as: Bearer <token>."
+      }
+    },
+    "schemas": {
+      "QueryPayload": {
+        "type": "object",
+        "required": [ "query", "user", "company" ],
+        "properties": {
+          "query": { "type": "string", "example": "What is the market trend for Reliance today?" },
+          "user": { "type": "string", "example": "alice" },
+          "company": { "type": "string", "example": "Reliance" }
+        }
+      },
+      "PipelineResult": {
+        "type": "object",
+        "properties": {
+          "answer": { "type": "string", "description": "LLM-generated answer" },
+          "sources": { "type": "array", "items": { "type": "string" } },
+          "mcp_data": { "type": "object", "nullable": true },
+          "tool_used": { "type": "string", "nullable": true },
+          "confidence": { "type": "number", "format": "float", "minimum": 0, "maximum": 1 }
+        }
+      },
+      "HistoryMessage": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "role": { "type": "string" },
+          "company": { "type": "string", "nullable": true },
+          "ts": { "type": "string", "format": "date-time" },
+          "content": { "type": "string" }
+        }
+      },
+      "HistoryResponse": {
+        "type": "object",
+        "properties": {
+          "session_id": { "type": "string" },
+          "messages": { "type": "array", "items": { "$ref": "#/components/schemas/HistoryMessage" } }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "detail": { "type": "string" }
+        }
+      }
+    }
+  }
+}
+

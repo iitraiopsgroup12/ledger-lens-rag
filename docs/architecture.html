@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>RAG-MCP Pipeline — Architecture Diagram</title>
+    <style>
+      body { font-family: Inter, Roboto, "Segoe UI", Arial, sans-serif; margin: 24px; color: #111; }
+      h1 { font-size: 24px; margin-bottom: 8px }
+      p.lead { color: #444; margin-top: 0 }
+      .diagram { border: 1px solid #e6e6e6; border-radius: 8px; padding: 12px; background: #fff }
+      .legend { margin-top: 12px; font-size: 14px }
+      .note { margin-top: 16px; font-size: 13px; color: #333 }
+      .box { fill: #0b5cff; fill-opacity: 0.08; stroke: #0b5cff; stroke-width: 1.5; rx: 6; }
+      .ext { fill: #0b5cff; fill-opacity: 0.03; stroke: #0b5cff; stroke-dasharray: 4 3; rx: 6; }
+      .title { font-weight: 700; font-size: 12px; fill: #0b2340 }
+      .small { font-size: 11px; fill: #1a1a1a }
+      .arrow { stroke: #666; stroke-width: 1.2; marker-end: url(#arrowhead) }
+    </style>
+  </head>
+  <body>
+    <h1>RAG-MCP Pipeline — Architecture Diagram</h1>
+    <p class="lead">A visual overview of the Retrieval-Augmented Generation pipeline integrated with an MCP (Model Context Protocol) server and session-based memory stored in FAISS.</p>
+
+    <div class="diagram">
+      <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 1200 720" style="max-width:1200px; height:auto; display:block; margin:0 auto;">
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
+          </marker>
+        </defs>
+
+        <!-- Left: Client / Auth -->
+        <g transform="translate(20,20)">
+          <rect x="0" y="0" width="220" height="84" class="box" />
+          <text x="12" y="20" class="title">Client / External Chatbot</text>
+          <text x="12" y="38" class="small">- Sends POST /query</text>
+          <text x="12" y="56" class="small">- Authorization: Bearer &lt;JWT&gt;</text>
+        </g>
+
+        <!-- FastAPI -->
+        <g transform="translate(270,20)">
+          <rect x="0" y="0" width="300" height="120" class="box" />
+          <text x="12" y="20" class="title">FastAPI / Query Endpoint</text>
+          <text x="12" y="40" class="small">- Auth (JWT decode)</text>
+          <text x="12" y="58" class="small">- Store messages to FAISS (session)</text>
+          <text x="12" y="76" class="small">- Calls RAGPipeline.query()</text>
+        </g>
+
+        <!-- Center: Pipeline -->
+        <g transform="translate(600,20)">
+          <rect x="0" y="0" width="560" height="360" class="box" />
+          <text x="12" y="20" class="title">RAG Pipeline (server-side)</text>
+
+          <!-- Embedder -->
+          <rect x="20" y="40" width="190" height="70" class="box" />
+          <text x="34" y="60" class="small">Embedder</text>
+          <text x="34" y="76" class="small">OpenAI embeddings</text>
+
+          <!-- Vector Store / Retriever -->
+          <rect x="220" y="40" width="200" height="70" class="box" />
+          <text x="234" y="60" class="small">Retriever / Vector Store</text>
+          <text x="234" y="76" class="small">FAISS (session & corpus)</text>
+
+          <!-- Context Builder -->
+          <rect x="440" y="40" width="100" height="70" class="box" />
+          <text x="452" y="60" class="small">Context</text>
+          <text x="452" y="76" class="small">Builder</text>
+
+          <!-- MCP Registry -->
+          <rect x="20" y="130" width="260" height="70" class="box" />
+          <text x="34" y="150" class="small">MCP Client Registry</text>
+          <text x="34" y="166" class="small">HTTPMCPClient (ise)</text>
+
+          <!-- LLM -->
+          <rect x="300" y="130" width="240" height="120" class="box" />
+          <text x="314" y="150" class="small">LLM Backend</text>
+          <text x="314" y="166" class="small">Anthropic Claude</text>
+          <text x="314" y="184" class="small">model: claude-sonnet-4-*</text>
+
+          <!-- Pipeline arrows & labels -->
+          <line x1="210" y1="75" x2="220" y2="75" class="arrow" />
+          <text x="110" y="35" class="small" text-anchor="middle">embed(query)</text>
+
+          <line x1="420" y1="75" x2="440" y2="75" class="arrow" />
+          <text x="330" y="35" class="small" text-anchor="middle">retrieve(top_k)</text>
+
+          <line x1="140" y1="170" x2="300" y2="170" class="arrow" />
+          <text x="220" y="160" class="small" text-anchor="middle">determine tool</text>
+
+          <line x1="520" y1="190" x2="560" y2="190" class="arrow" />
+          <text x="460" y="200" class="small">llm.complete(context+query)</text>
+        </g>
+
+        <!-- External services: MCP server & OpenAI / Anthropic -->
+        <g transform="translate(40,420)">
+          <rect x="0" y="0" width="320" height="96" class="ext" />
+          <text x="12" y="20" class="title">MCP Server (ISE)</text>
+          <text x="12" y="40" class="small">http://0.0.0.0:8000/jsonrpc</text>
+          <text x="12" y="60" class="small">Provides tools: get_stock_data, trending, historical, ...</text>
+        </g>
+
+        <g transform="translate(420,420)">
+          <rect x="0" y="0" width="240" height="96" class="ext" />
+          <text x="12" y="20" class="title">OpenAI Embeddings</text>
+          <text x="12" y="40" class="small">text-embedding-3-small</text>
+        </g>
+
+        <g transform="translate(720,420)">
+          <rect x="0" y="0" width="320" height="96" class="ext" />
+          <text x="12" y="20" class="title">Anthropic Claude</text>
+          <text x="12" y="40" class="small">claude-sonnet-*</text>
+        </g>
+
+        <!-- Data flow arrows from FastAPI to Pipeline and to MCP -->
+        <line x1="240" y1="64" x2="270" y2="64" class="arrow" />
+        <line x1="570" y1="80" x2="600" y2="80" class="arrow" />
+        <line x1="760" y1="190" x2="820" y2="190" class="arrow" />
+
+        <!-- From pipeline to external MCP -->
+        <line x1="300" y1="200" x2="160" y2="420" class="arrow" />
+        <text x="220" y="320" class="small" text-anchor="middle">JSON-RPC request</text>
+
+        <!-- From pipeline to OpenAI / Anthropic -->
+        <line x1="420" y1="160" x2="520" y2="420" class="arrow" />
+        <text x="470" y="300" class="small" text-anchor="middle">embeddings / completions</text>
+
+      </svg>
+    </div>
+
+    <div class="legend">
+      <strong>Legend</strong>
+      <ul>
+        <li><strong>FastAPI</strong> — receives requests, decodes JWT, and stores per-session messages into FAISS.</li>
+        <li><strong>RAG Pipeline</strong> — embeds the query, retrieves context from FAISS, optionally calls an MCP tool, builds prompt context, and calls the LLM to generate an answer.</li>
+        <li><strong>MCP Server</strong> — external JSON-RPC server (ISE) providing market data tools at /jsonrpc.</li>
+        <li><strong>FAISS Vector Store</strong> — stores both corpus documents and per-user session messages as vectors for retrieval.</li>
+      </ul>
+    </div>
+
+    <div class="note">
+      <strong>Notes & recommendations</strong>
+      <ol>
+        <li>Use a dedicated JWT secret (e.g., JWT_SECRET) instead of re-using MCP API keys.</li>
+        <li>Consider sharding session memory or using time-to-live policies to bound FAISS size.</li>
+        <li>For production, run FAISS on a Linux host with available wheels (faiss-cpu) or use a managed vector DB.</li>
+        <li>Secure communication between services (TLS) and enforce API rate limits on external APIs (OpenAI/Anthropic/MCP).</li>
+      </ol>
+    </div>
+
+    <div class="note">
+      <strong>How to view</strong>
+      <p>Open the file in your browser directly or serve it using Python's simple HTTP server from project root:</p>
+      <pre><code class="powershell"># From PowerShell in project root
+python -m http.server 8000; # then open http://127.0.0.1:8000/docs/architecture.html in a browser</code></pre>
+    </div>
+
+  </body>
+</html>
+

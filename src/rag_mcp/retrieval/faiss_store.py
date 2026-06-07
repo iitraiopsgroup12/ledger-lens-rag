@@ -152,3 +152,37 @@ class FaissVectorStore(VectorStore):
 
             return results
 
+    async def list_session(self, session_id: str) -> list[Document]:
+        """Return all documents belonging to a session.
+
+        This helper is specific to the FAISS-backed store and is used to
+        retrieve per-session conversation history stored in document metadata
+        under the key "session_id". Results are sorted by the metadata
+        timestamp key "ts" when present.
+
+        Args:
+            session_id: The session identifier to filter documents by.
+
+        Returns:
+            list[Document]: Documents matching the session id.
+        """
+        async with self.lock:
+            if not self._id_to_doc:
+                return []
+
+            docs: list[Document] = []
+            for doc in self._id_to_doc.values():
+                try:
+                    if doc.metadata.get("session_id") == session_id:
+                        docs.append(doc)
+                except Exception:
+                    # skip malformed metadata
+                    continue
+
+            # Sort by timestamp if available
+            def _ts_key(d: Document) -> str:
+                return d.metadata.get("ts", "")
+
+            docs.sort(key=_ts_key)
+            return docs
+
