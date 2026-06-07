@@ -21,6 +21,7 @@ dependencies = [
     "numpy",
     "python-dotenv",
     "tenacity",
+    "faiss-cpu>=1.14.2",
 ]
 
 [dependency-groups]
@@ -69,3 +70,7 @@ exclude_lines = [
     "raise AssertionError",
     "raise NotImplementedError",
 ]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rag_mcp"]
+
