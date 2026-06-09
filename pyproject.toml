@@ -1,79 +1,17 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
-name = "rag-mcp-pipeline"
+name = "ledger-lens-rag"
 version = "0.1.0"
-description = "Production-ready RAG pipeline with MCP server integration"
-requires-python = ">=3.14"
-authors = [
-    {name = "RAG Pipeline Team"}
-]
+description = "Add your description here"
 readme = "README.md"
-license = {text = "MIT"}
-dependencies = [
-    "pydantic>=2.0",
-    "pydantic-settings",
-    "httpx",
-    "anthropic",
-    "openai",
-    "numpy",
-    "python-dotenv",
-    "tenacity",
-    "faiss-cpu>=1.14.2",
-    "fastapi>=0.136.3",
-    "uvicorn[standard]>=0.49.0",
-    "pyjwt>=2.13.0",
+authors = [
+    { name = "Vishal Soni", email = "iitr.aiops.group.12@gmail.com" }
 ]
+requires-python = ">=3.14"
+dependencies = []
 
-[dependency-groups]
-dev = [
-    "pytest",
-    "pytest-asyncio",
-    "pytest-cov",
-    "ruff",
-    "mypy",
-    "respx",
-]
+[project.scripts]
+ledger-lens-rag = "ledger_lens_rag:main"
 
-[tool.ruff]
-line-length = 100
-target-version = "py314"
-select = ["E", "F", "I", "UP"]
-
-[tool.ruff.isort]
-known-first-party = ["rag_mcp"]
-
-[tool.mypy]
-python_version = "3.14"
-strict = true
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-
-[tool.pytest.ini_options]
-asyncio_mode = "auto"
-testpaths = ["tests"]
-addopts = "--strict-markers --tb=short"
-markers = [
-    "asyncio: marks tests as async",
-    "integration: marks tests as integration tests",
-]
-
-[tool.coverage.run]
-source = ["src"]
-branch = true
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "if __name__ == .__main__.:",
-    "raise AssertionError",
-    "raise NotImplementedError",
-]
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/rag_mcp"]
-
+[build-system]
+requires = ["uv_build>=0.11.19,<0.12.0"]
+build-backend = "uv_build"
