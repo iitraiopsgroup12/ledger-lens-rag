@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from rag_mcp.config.settings import Settings
+from rag_mcp.config import Settings
 from rag_mcp.embeddings.base import Embedder
 from rag_mcp.llm.base import LLMBackend
 from rag_mcp.mcp.base import MCPClient

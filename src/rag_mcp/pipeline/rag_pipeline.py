@@ -1,12 +1,11 @@
 """RAG pipeline orchestrating retrieval, MCP calls, and LLM generation."""
 
 import logging
-from typing import Any
 
 from pydantic import BaseModel, Field
 
 from rag_mcp import RagMCPError
-from rag_mcp.config.settings import Settings
+from rag_mcp.config import Settings
 from rag_mcp.embeddings.base import Embedder
 from rag_mcp.llm.base import LLMBackend
 from rag_mcp.mcp.registry import MCPClientRegistry
