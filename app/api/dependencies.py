@@ -1,7 +1,7 @@
 from functools import lru_cache
 
 from app.config import settings
-from app.core.chunking import RecursiveChunker
+from app.core.chunking import AdaptiveChunker
 from app.core.embeddings import AnthropicEmbedder, GoogleEmbedder, HuggingFaceEmbedder, OpenAIEmbedder
 from app.core.llm import AnthropicChatLLM, GoogleChatLLM, HuggingFaceChatLLM, OpenAIChatLLM
 from app.core.pipeline import RAGPipeline
@@ -15,9 +15,19 @@ def build_pipeline() -> RAGPipeline:
     Set LLM_PROVIDER=anthropic in .env to switch the LLM + embedder to the
     Anthropic stack (Claude LLM + Voyage AI embeddings). Defaults to OpenAI.
     """
-    chunker = RecursiveChunker(
-        chunk_size=settings.chunk_size,
-        chunk_overlap=settings.chunk_overlap,
+    chunker = AdaptiveChunker(
+        invoice_chunk_size=settings.invoice_chunk_size,
+        invoice_chunk_overlap=settings.invoice_chunk_overlap,
+        financial_chunk_size=settings.financial_chunk_size,
+        financial_chunk_overlap=settings.financial_chunk_overlap,
+        legal_chunk_size=settings.legal_chunk_size,
+        legal_chunk_overlap=settings.legal_chunk_overlap,
+        tabular_chunk_size=settings.tabular_chunk_size,
+        tabular_chunk_overlap=settings.tabular_chunk_overlap,
+        markdown_chunk_size=settings.markdown_chunk_size,
+        markdown_chunk_overlap=settings.markdown_chunk_overlap,
+        narrative_chunk_size=settings.chunk_size,
+        narrative_chunk_overlap=settings.chunk_overlap,
     )
 
     if settings.llm_provider == "anthropic":

@@ -1,8 +1,9 @@
 import asyncio
 import logging
 from functools import partial
+from pathlib import Path
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, UploadFile
 
 from app.api.dependencies import get_pipeline
 from app.api.schemas import (
@@ -13,8 +14,9 @@ from app.api.schemas import (
     QueryResponse,
     SourceDocumentResponse,
 )
+from app.core.parsers import get_parser
 from app.core.pipeline import IngestDocument, RAGPipeline
-from app.exceptions import ProviderUnavailableError
+from app.exceptions import EmptyFileError, ProviderUnavailableError, ValidationError
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1")
@@ -44,6 +46,55 @@ async def ingest(
         chunks_created=result.chunks_created,
         vector_ids=result.vector_ids,
         took_ms=result.took_ms,
+        doc_types=result.doc_types,
+    )
+
+
+@router.post("/ingest/file", response_model=IngestResponse)
+async def ingest_file(
+    files: list[UploadFile] = File(..., description="One or more files to ingest"),
+    pipeline: RAGPipeline = Depends(get_pipeline),
+) -> IngestResponse:
+    if not files:
+        raise ValidationError("At least one file must be provided")
+
+    logger.info("POST /ingest/file — %d file(s) received", len(files))
+
+    # Read all file bytes async before entering the thread executor
+    files_data: list[tuple[str, bytes, dict]] = []
+    for f in files:
+        filename = f.filename or "unknown"
+        get_parser(filename)  # raises UnsupportedFileTypeError early, before reading
+        content = await f.read()
+        if not content:
+            raise EmptyFileError(filename)
+        ext = Path(filename).suffix.lower().lstrip(".")
+        metadata = {"source_file": filename, "file_type": ext, "content_type": f.content_type or ""}
+        files_data.append((filename, content, metadata))
+
+    def _parse_and_ingest() -> object:
+        docs = []
+        for filename, data, meta in files_data:
+            parser = get_parser(filename)
+            text = parser.parse(data, filename)
+            docs.append(IngestDocument(text=text, metadata=meta))
+        return pipeline.ingest(docs)
+
+    loop = asyncio.get_event_loop()
+    try:
+        result = await loop.run_in_executor(None, _parse_and_ingest)
+    except Exception as exc:
+        if "openai" in str(exc).lower() or "connection" in str(exc).lower():
+            raise ProviderUnavailableError() from exc
+        raise
+
+    return IngestResponse(
+        status="success",
+        ingested_documents=result.ingested_documents,
+        chunks_created=result.chunks_created,
+        vector_ids=result.vector_ids,
+        took_ms=result.took_ms,
+        doc_types=result.doc_types,
     )
 
 

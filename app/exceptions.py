@@ -25,6 +25,23 @@ class ValidationError(RAGException):
         super().__init__("VALIDATION_ERROR", message, 400)
 
 
+class UnsupportedFileTypeError(RAGException):
+    def __init__(self, ext: str):
+        supported = "pdf, docx, xlsx, xls, txt, csv, md"
+        msg = f"File type '{ext}' is not supported. Supported: {supported}" if ext else f"No file extension detected. Supported: {supported}"
+        super().__init__("UNSUPPORTED_FILE_TYPE", msg, 400)
+
+
+class FileParseError(RAGException):
+    def __init__(self, filename: str, reason: str):
+        super().__init__("FILE_PARSE_ERROR", f"Could not parse '{filename}': {reason}", 422)
+
+
+class EmptyFileError(RAGException):
+    def __init__(self, filename: str):
+        super().__init__("EMPTY_FILE", f"File '{filename}' produced no extractable text", 400)
+
+
 def _error_body(code: str, message: str) -> dict:
     return {"error": {"code": code, "message": message}}
 

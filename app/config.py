@@ -1,5 +1,13 @@
-from pydantic_settings import BaseSettings
+import os
+from pathlib import Path
+
 from pydantic import Field
+from pydantic_settings import BaseSettings
+
+# Resolve the .env file location: use APP_CONFIG_PATH if set, otherwise the
+# project-local .env.  APP_CONFIG_PATH should be a directory; .env is appended.
+_config_dir = os.environ.get("APP_CONFIG_PATH", "")
+_env_file = str(Path(_config_dir) / ".env") if _config_dir else ".env"
 
 
 class Settings(BaseSettings):
@@ -29,13 +37,25 @@ class Settings(BaseSettings):
     huggingface_llm_model: str = Field("HuggingFaceH4/zephyr-7b-beta", alias="HUGGINGFACE_LLM_MODEL")
     huggingface_embedding_model: str = Field("sentence-transformers/all-MiniLM-L6-v2", alias="HUGGINGFACE_EMBEDDING_MODEL")
 
-    # Shared
+    # Shared (also used as NARRATIVE fallback by AdaptiveChunker)
     chunk_size: int = Field(1000, alias="CHUNK_SIZE")
     chunk_overlap: int = Field(200, alias="CHUNK_OVERLAP")
     faiss_index_path: str = Field("faiss_index", alias="FAISS_INDEX_PATH")
     default_top_k: int = Field(4, alias="DEFAULT_TOP_K")
 
-    model_config = {"env_file": ".env", "populate_by_name": True}
+    # Per-document-type adaptive chunking
+    invoice_chunk_size: int = Field(400, alias="INVOICE_CHUNK_SIZE")
+    invoice_chunk_overlap: int = Field(50, alias="INVOICE_CHUNK_OVERLAP")
+    financial_chunk_size: int = Field(800, alias="FINANCIAL_CHUNK_SIZE")
+    financial_chunk_overlap: int = Field(150, alias="FINANCIAL_CHUNK_OVERLAP")
+    legal_chunk_size: int = Field(1500, alias="LEGAL_CHUNK_SIZE")
+    legal_chunk_overlap: int = Field(300, alias="LEGAL_CHUNK_OVERLAP")
+    tabular_chunk_size: int = Field(300, alias="TABULAR_CHUNK_SIZE")
+    tabular_chunk_overlap: int = Field(0, alias="TABULAR_CHUNK_OVERLAP")
+    markdown_chunk_size: int = Field(1000, alias="MARKDOWN_CHUNK_SIZE")
+    markdown_chunk_overlap: int = Field(100, alias="MARKDOWN_CHUNK_OVERLAP")
+
+    model_config = {"env_file": _env_file, "populate_by_name": True}
 
 
 settings = Settings()

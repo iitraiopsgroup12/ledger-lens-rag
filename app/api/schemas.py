@@ -19,6 +19,7 @@ class IngestResponse(BaseModel):
     chunks_created: int
     vector_ids: list[str]
     took_ms: float
+    doc_types: dict[str, str] = Field(default_factory=dict)
 
 
 class QueryRequest(BaseModel):

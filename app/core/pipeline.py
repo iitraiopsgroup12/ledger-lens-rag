@@ -29,6 +29,7 @@ class IngestResult:
     chunks_created: int
     vector_ids: list[str]
     took_ms: float
+    doc_types: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -55,6 +56,7 @@ class RAGPipeline:
     def ingest(self, documents: list[IngestDocument]) -> IngestResult:
         start = time.monotonic()
         all_chunks: list[Document] = []
+        doc_types: dict[str, str] = {}
 
         for doc in documents:
             meta = dict(doc.metadata)
@@ -62,6 +64,9 @@ class RAGPipeline:
                 meta["doc_id"] = doc.id
             chunks = self._chunker.split(doc.text, meta)
             all_chunks.extend(chunks)
+            if chunks and "doc_type" in chunks[0].metadata:
+                key = doc.id or meta.get("source_file", f"doc_{len(doc_types)}")
+                doc_types[key] = chunks[0].metadata["doc_type"]
             logger.info("Document %s split into %d chunks", doc.id, len(chunks))
 
         vector_ids = self._vector_store.add_documents(all_chunks)
@@ -79,6 +84,7 @@ class RAGPipeline:
             chunks_created=len(all_chunks),
             vector_ids=vector_ids,
             took_ms=round(took_ms, 2),
+            doc_types=doc_types,
         )
 
     def query(

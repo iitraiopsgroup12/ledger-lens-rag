@@ -110,6 +110,33 @@ class TestQueryEndpoint:
         assert resp.status_code == 422
 
 
+class TestIngestDocTypes:
+    def test_doc_types_present_in_response(self, client, mock_pipeline):
+        from app.core.pipeline import IngestResult
+
+        mock_pipeline.ingest.return_value = IngestResult(
+            ingested_documents=1,
+            chunks_created=3,
+            vector_ids=["v1", "v2", "v3"],
+            took_ms=42.0,
+            doc_types={"doc-001": "invoice"},
+        )
+        resp = client.post(
+            "/api/v1/ingest",
+            json={"documents": [{"id": "doc-001", "text": "Invoice total $100"}]},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["doc_types"] == {"doc-001": "invoice"}
+
+    def test_doc_types_empty_when_not_classified(self, client):
+        resp = client.post(
+            "/api/v1/ingest",
+            json={"documents": [{"id": "doc-001", "text": "Some content here"}]},
+        )
+        assert resp.status_code == 200
+        assert "doc_types" in resp.json()
+
+
 class TestHealthEndpoint:
     def test_health_ok(self, client):
         resp = client.get("/api/v1/health")
