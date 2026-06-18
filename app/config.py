@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings
 # project-local .env.  APP_CONFIG_PATH should be a directory; .env is appended.
 _config_dir = os.environ.get("APP_CONFIG_PATH", "")
 _env_file = str(Path(_config_dir) / ".env") if _config_dir else ".env"
-
+print(_env_file)
 
 class Settings(BaseSettings):
     # Provider selection: "openai" | "anthropic"

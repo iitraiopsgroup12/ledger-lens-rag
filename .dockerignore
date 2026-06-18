@@ -1,0 +1,12 @@
+.git
+.gitignore
+.idea
+.venv
+.env
+.env.example
+**/__pycache__
+**/*.pyc
+tests
+README.md
+ledger-lens-rag-chart
+faiss_index
