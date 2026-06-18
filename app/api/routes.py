@@ -1,9 +1,10 @@
 import asyncio
+import json
 import logging
 from functools import partial
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi import APIRouter, Depends, File, Form, UploadFile
 
 from app.api.dependencies import get_pipeline
 from app.api.schemas import (
@@ -129,6 +130,69 @@ async def query(
             SourceDocumentResponse(
                 text=s.text, score=s.score, metadata=s.metadata
             )
+            for s in result.sources
+        ],
+        took_ms=result.took_ms,
+    )
+
+
+@router.post("/query-with-file", response_model=QueryResponse)
+async def query_with_file(
+    query: str = Form(..., min_length=1, description="Question to answer"),
+    file: UploadFile = File(..., description="Document to parse: .xlsx, .docx, .txt, .pdf, .csv, .xml"),
+    top_k: int = Form(4, ge=1, le=20),
+    generate_answer: bool = Form(True),
+    filter: str | None = Form(None, description="Optional metadata filter, JSON-encoded"),
+    isIngest: bool = Form(False, description="Persist the file into the vector store before answering"),
+    pipeline: RAGPipeline = Depends(get_pipeline),
+) -> QueryResponse:
+    filename = file.filename or "unknown"
+    get_parser(filename)  # raises UnsupportedFileTypeError early, before reading
+    content = await file.read()
+    if not content:
+        raise EmptyFileError(filename)
+
+    parsed_filter: dict | None = None
+    if filter:
+        try:
+            parsed_filter = json.loads(filter)
+        except json.JSONDecodeError as exc:
+            raise ValidationError("filter must be valid JSON") from exc
+
+    ext = Path(filename).suffix.lower().lstrip(".")
+    metadata = {"source_file": filename, "file_type": ext, "content_type": file.content_type or ""}
+
+    logger.info(
+        "POST /query-with-file — file=%s isIngest=%s top_k=%d", filename, isIngest, top_k
+    )
+
+    def _run() -> object:
+        parser = get_parser(filename)
+        text = parser.parse(content, filename)
+
+        if isIngest:
+            doc = IngestDocument(text=text, metadata=metadata)
+            pipeline.ingest([doc])
+            return pipeline.query(query, top_k, generate_answer, parsed_filter)
+
+        extra_docs = pipeline._chunker.split(text, metadata)
+        return pipeline.query_with_extra_context(
+            query, top_k, generate_answer, parsed_filter, extra_docs
+        )
+
+    loop = asyncio.get_event_loop()
+    try:
+        result = await loop.run_in_executor(None, _run)
+    except Exception as exc:
+        if "openai" in str(exc).lower() or "connection" in str(exc).lower():
+            raise ProviderUnavailableError() from exc
+        raise
+
+    return QueryResponse(
+        query=result.query,
+        answer=result.answer,
+        sources=[
+            SourceDocumentResponse(text=s.text, score=s.score, metadata=s.metadata)
             for s in result.sources
         ],
         took_ms=result.took_ms,

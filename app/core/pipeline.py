@@ -116,3 +116,44 @@ class RAGPipeline:
             sources=sources,
             took_ms=round(took_ms, 2),
         )
+
+    def query_with_extra_context(
+        self,
+        question: str,
+        k: int,
+        generate_answer: bool,
+        filter: dict | None,
+        extra_docs: list[Document],
+    ) -> QueryResult:
+        """Same retrieval as `query`, but unions `extra_docs` into the LLM context.
+
+        `extra_docs` are not persisted and do not appear in the returned `sources` —
+        they only influence the generated answer (used by /query-with-file when the
+        uploaded file is not ingested into the vector store).
+        """
+        start = time.monotonic()
+
+        results = self._vector_store.similarity_search(question, k=k, filter=filter)
+        logger.info("Retrieved %d chunks for query", len(results))
+
+        sources = [
+            SourceDocument(
+                text=doc.page_content,
+                score=round(float(score), 4),
+                metadata=doc.metadata,
+            )
+            for doc, score in results
+        ]
+
+        answer: str | None = None
+        if generate_answer:
+            docs = [doc for doc, _ in results] + extra_docs
+            answer = self._llm.generate(question, docs)
+
+        took_ms = (time.monotonic() - start) * 1000
+        return QueryResult(
+            query=question,
+            answer=answer,
+            sources=sources,
+            took_ms=round(took_ms, 2),
+        )

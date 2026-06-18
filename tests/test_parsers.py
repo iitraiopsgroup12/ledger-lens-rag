@@ -12,6 +12,7 @@ from app.core.parsers import (
     ExcelParser,
     PDFParser,
     TextParser,
+    XmlParser,
     get_parser,
 )
 
@@ -206,12 +207,34 @@ class TestCsvParser:
 
 
 # ---------------------------------------------------------------------------
+# XmlParser
+# ---------------------------------------------------------------------------
+
+class TestXmlParser:
+    parser = XmlParser()
+
+    def test_extracts_text(self):
+        data = b"<invoice><total>500</total><customer>Alice</customer></invoice>"
+        result = self.parser.parse(data, "invoice.xml")
+        assert "500" in result
+        assert "Alice" in result
+
+    def test_malformed_raises_file_parse_error(self):
+        with pytest.raises(FileParseError):
+            self.parser.parse(b"<unclosed>", "bad.xml")
+
+    def test_empty_elements_raise_empty_file_error(self):
+        with pytest.raises(EmptyFileError):
+            self.parser.parse(b"<root><child/></root>", "empty.xml")
+
+
+# ---------------------------------------------------------------------------
 # get_parser registry
 # ---------------------------------------------------------------------------
 
 class TestGetParser:
     def test_known_extensions_resolve(self):
-        for ext in (".pdf", ".docx", ".xlsx", ".xls", ".txt", ".csv", ".md"):
+        for ext in (".pdf", ".docx", ".xlsx", ".xls", ".txt", ".csv", ".md", ".xml"):
             parser = get_parser(f"file{ext}")
             assert parser is not None
 

@@ -91,3 +91,35 @@ class TestQuery:
         assert result.answer is None
         assert result.sources == []
         mock_llm.generate.assert_not_called()
+
+
+class TestQueryWithExtraContext:
+    def test_extra_docs_passed_to_llm_alongside_retrieved(self, pipeline, mock_vector_store, mock_llm):
+        extra_docs = [Document(page_content="uploaded file content", metadata={"source_file": "f.txt"})]
+        result = pipeline.query_with_extra_context(
+            "What is X?", k=4, generate_answer=True, filter=None, extra_docs=extra_docs
+        )
+
+        assert result.answer == "Mocked answer"
+        mock_llm.generate.assert_called_once()
+        _, llm_docs = mock_llm.generate.call_args[0]
+        assert extra_docs[0] in llm_docs
+        assert len(llm_docs) == 2  # 1 retrieved + 1 extra
+
+    def test_sources_reflect_only_vector_store_results(self, pipeline):
+        result = pipeline.query_with_extra_context(
+            "What is X?", k=4, generate_answer=False, filter=None,
+            extra_docs=[Document(page_content="uploaded", metadata={})],
+        )
+
+        assert len(result.sources) == 1
+        assert result.sources[0].text == "chunk1"
+
+    def test_no_generation_skips_llm(self, pipeline, mock_llm):
+        result = pipeline.query_with_extra_context(
+            "What is X?", k=4, generate_answer=False, filter=None,
+            extra_docs=[Document(page_content="uploaded", metadata={})],
+        )
+
+        assert result.answer is None
+        mock_llm.generate.assert_not_called()

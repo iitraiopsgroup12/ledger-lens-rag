@@ -27,7 +27,7 @@ class ValidationError(RAGException):
 
 class UnsupportedFileTypeError(RAGException):
     def __init__(self, ext: str):
-        supported = "pdf, docx, xlsx, xls, txt, csv, md"
+        supported = "pdf, docx, xlsx, xls, txt, csv, md, xml"
         msg = f"File type '{ext}' is not supported. Supported: {supported}" if ext else f"No file extension detected. Supported: {supported}"
         super().__init__("UNSUPPORTED_FILE_TYPE", msg, 400)
 

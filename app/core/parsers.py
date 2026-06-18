@@ -130,6 +130,30 @@ class CsvParser(BaseParser):
         return result
 
 
+class XmlParser(BaseParser):
+    def parse(self, data: bytes, filename: str) -> str:
+        try:
+            import xml.etree.ElementTree as ET
+
+            root = ET.fromstring(data)
+            lines: list[str] = []
+
+            def _walk(element) -> None:
+                text = (element.text or "").strip()
+                if text:
+                    lines.append(f"{element.tag}: {text}")
+                for child in element:
+                    _walk(child)
+
+            _walk(root)
+            result = "\n".join(lines).strip()
+        except Exception as exc:
+            raise FileParseError(filename, str(exc)) from exc
+        if not result:
+            raise EmptyFileError(filename)
+        return result
+
+
 _REGISTRY: dict[str, BaseParser] = {
     ".pdf": PDFParser(),
     ".docx": DocxParser(),
@@ -138,6 +162,7 @@ _REGISTRY: dict[str, BaseParser] = {
     ".txt": TextParser(),
     ".csv": CsvParser(),
     ".md": TextParser(),
+    ".xml": XmlParser(),
 }
 
 
