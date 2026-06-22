@@ -25,17 +25,17 @@ cp .env.example .env
 ## Run
 
 ```bash
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload --port 8080
 ```
 
-Swagger docs available at `http://localhost:8000/docs`.
+Swagger docs available at `http://localhost:8080/docs`.
 
 ## API
 
 ### POST /api/v1/ingest
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/ingest \
+curl -X POST http://localhost:8080/api/v1/ingest \
   -H "Content-Type: application/json" \
   -d '{
     "documents": [
@@ -51,7 +51,7 @@ curl -X POST http://localhost:8000/api/v1/ingest \
 ### POST /api/v1/query
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/query \
+curl -X POST http://localhost:8080/api/v1/query \
   -H "Content-Type: application/json" \
   -d '{
     "query": "What is the leave policy?",
@@ -63,7 +63,7 @@ curl -X POST http://localhost:8000/api/v1/query \
 ### GET /api/v1/health
 
 ```bash
-curl http://localhost:8000/api/v1/health
+curl http://localhost:8080/api/v1/health
 ```
 
 ## Tests
