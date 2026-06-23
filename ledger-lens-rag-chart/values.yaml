@@ -11,16 +11,16 @@ image:
   # This sets the pull policy for images.
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "latest"
+  tag: "1.0"
 
 # Port the application listens on inside the container (see main.py / PORT env var).
 containerPort: 8080
 
 # Plain (non-secret) environment variables for the container.
 env:
-  LLM_PROVIDER: "openai"
-  EMBEDDING_MODEL: "text-embedding-3-small"
-  LLM_MODEL: "gpt-4o-mini"
+  LLM_PROVIDER: "huggingface"
+  HUGGINGFACE_LLM_MODEL: "Qwen/Qwen3.6-35B-A3B"
+  HUGGINGFACE_EMBEDDING_MODEL: "sentence-transformers/all-MiniLM-L6-v2"
   FAISS_INDEX_PATH: "/data/faiss_index"
   DEFAULT_TOP_K: "4"
   CHUNK_SIZE: "1000"
@@ -144,21 +144,27 @@ httpRoute:
 
 resources:
   limits:
-    cpu: 250m
-    memory: 256Mi
+    cpu: "2"
+    memory: 2Gi
   requests:
-    cpu: 100m
-    memory: 128Mi
+    cpu: 500m
+    memory: 1Gi
 
 # This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
 livenessProbe:
   httpGet:
     path: /api/v1/health
     port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  failureThreshold: 6
 readinessProbe:
   httpGet:
     path: /api/v1/health
     port: http
+  initialDelaySeconds: 20
+  periodSeconds: 10
+  failureThreshold: 6
 
 # This section is for setting up autoscaling more information can be found here: https://kubernetes.io/docs/concepts/workloads/autoscaling/
 autoscaling:

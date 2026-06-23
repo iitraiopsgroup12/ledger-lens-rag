@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi as fastapi_get_openapi
 from fastapi.responses import JSONResponse
 
 from app.api.dependencies import build_pipeline
@@ -33,6 +34,40 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+# OpenAPI 3.1 (FastAPI's default) describes file fields with contentMediaType,
+# which Swagger UI doesn't render as a file picker — it falls back to a text
+# input. Pin to 3.0.2 so UploadFile fields use format: binary instead.
+app.openapi_version = "3.0.2"
+
+
+def custom_openapi() -> dict:
+    if app.openapi_schema:
+        return app.openapi_schema
+    schema = fastapi_get_openapi(
+        title=app.title,
+        version=app.version,
+        openapi_version=app.openapi_version,
+        routes=app.routes,
+    )
+    # FastAPI's UploadFile always reports its OpenAPI 3.1 `contentMediaType`
+    # shape regardless of openapi_version, and Swagger UI doesn't render
+    # array-of-contentMediaType items as file pickers — only the classic
+    # OpenAPI 3.0 `format: binary` shape. Rewrite it in place.
+    for component_schema in schema.get("components", {}).get("schemas", {}).values():
+        for prop in component_schema.get("properties", {}).values():
+            items = prop.get("items")
+            if isinstance(items, dict) and items.get("contentMediaType"):
+                items.pop("contentMediaType")
+                items["format"] = "binary"
+            if prop.get("contentMediaType"):
+                prop.pop("contentMediaType")
+                prop["format"] = "binary"
+    app.openapi_schema = schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
+
 
 app.add_middleware(
     CORSMiddleware,
