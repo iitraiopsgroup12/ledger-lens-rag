@@ -54,12 +54,30 @@ async def ingest(
 @router.post("/ingest/file", response_model=IngestResponse)
 async def ingest_file(
     files: list[UploadFile] = File(..., description="One or more files to ingest"),
+    metadata: str | None = Form(
+        None,
+        description="Optional key/value pairs, JSON-encoded, stored as metadata on every "
+        "chunk for filtered retrieval (e.g. {\"tenant\": \"acme\", \"year\": 2024})",
+    ),
     pipeline: RAGPipeline = Depends(get_pipeline),
 ) -> IngestResponse:
     if not files:
         raise ValidationError("At least one file must be provided")
 
-    logger.info("POST /ingest/file — %d file(s) received", len(files))
+    user_metadata: dict = {}
+    if metadata:
+        try:
+            user_metadata = json.loads(metadata)
+        except json.JSONDecodeError as exc:
+            raise ValidationError("metadata must be valid JSON") from exc
+        if not isinstance(user_metadata, dict):
+            raise ValidationError("metadata must be a JSON object of key/value pairs")
+
+    logger.info(
+        "POST /ingest/file — %d file(s) received, %d metadata key(s)",
+        len(files),
+        len(user_metadata),
+    )
 
     # Read all file bytes async before entering the thread executor
     files_data: list[tuple[str, bytes, dict]] = []
@@ -70,8 +88,15 @@ async def ingest_file(
         if not content:
             raise EmptyFileError(filename)
         ext = Path(filename).suffix.lower().lstrip(".")
-        metadata = {"source_file": filename, "file_type": ext, "content_type": f.content_type or ""}
-        files_data.append((filename, content, metadata))
+        # User-supplied metadata first, then file-derived keys so source provenance
+        # (source_file/file_type/content_type) always wins on conflicts.
+        meta = {
+            **user_metadata,
+            "source_file": filename,
+            "file_type": ext,
+            "content_type": f.content_type or "",
+        }
+        files_data.append((filename, content, meta))
 
     def _parse_and_ingest() -> object:
         docs = []
