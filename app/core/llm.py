@@ -51,9 +51,9 @@ If the user query is ambiguous, explain the financial assumptions you are making
 class OpenAIChatLLM(BaseLLM):
     """Grounded answer generation via OpenAI chat models."""
 
-    def __init__(self, api_key: str, model: str) -> None:
-        logger.info("Initializing OpenAIChatLLM with model %s", model)
-        self._chain = _PROMPT | ChatOpenAI(api_key=api_key, model=model)
+    def __init__(self, api_key: str, model: str, timeout: float = 3600) -> None:
+        logger.info("Initializing OpenAIChatLLM with model %s (timeout=%ss)", model, timeout)
+        self._chain = _PROMPT | ChatOpenAI(api_key=api_key, model=model, timeout=timeout)
 
     def generate(self, question: str, context: list[Document]) -> str:
         context_text = "\n\n---\n\n".join(d.page_content for d in context)
@@ -65,12 +65,13 @@ class OpenAIChatLLM(BaseLLM):
 class AnthropicChatLLM(BaseLLM):
     """Grounded answer generation via Anthropic Claude models."""
 
-    def __init__(self, api_key: str, model: str) -> None:
-        logger.info("Initializing AnthropicChatLLM with model %s", model)
+    def __init__(self, api_key: str, model: str, timeout: float = 3600) -> None:
+        logger.info("Initializing AnthropicChatLLM with model %s (timeout=%ss)", model, timeout)
         self._chain = _PROMPT | ChatAnthropic(
             anthropic_api_key=api_key,
             model_name=model,
             thinking={"type": "adaptive"},
+            timeout=timeout,
         )
 
     def generate(self, question: str, context: list[Document]) -> str:
@@ -83,9 +84,11 @@ class AnthropicChatLLM(BaseLLM):
 class GoogleChatLLM(BaseLLM):
     """Grounded answer generation via Google Gemini models."""
 
-    def __init__(self, api_key: str, model: str) -> None:
-        logger.info("Initializing GoogleChatLLM with model %s", model)
-        self._chain = _PROMPT | ChatGoogleGenerativeAI(google_api_key=api_key, model=model)
+    def __init__(self, api_key: str, model: str, timeout: float = 3600) -> None:
+        logger.info("Initializing GoogleChatLLM with model %s (timeout=%ss)", model, timeout)
+        self._chain = _PROMPT | ChatGoogleGenerativeAI(
+            google_api_key=api_key, model=model, timeout=timeout
+        )
 
     def generate(self, question: str, context: list[Document]) -> str:
         context_text = "\n\n---\n\n".join(d.page_content for d in context)
@@ -97,13 +100,20 @@ class GoogleChatLLM(BaseLLM):
 class HuggingFaceChatLLM(BaseLLM):
     """Grounded answer generation via HuggingFace Inference API."""
 
-    def __init__(self, api_key: str, model: str) -> None:
-        logger.info("Initializing HuggingFaceChatLLM with model %s", model)
-        endpoint = HuggingFaceEndpoint(
-            repo_id=model,
+    def __init__(self, api_key: str, model: str, timeout: float = 3600) -> None:
+        logger.info("Initializing HuggingFaceChatLLM with model %s (timeout=%ss)", model, timeout)
+        llm = HuggingFaceEndpoint(
+            repo_id="deepseek-ai/DeepSeek-R1-0528",
+            task="text-generation",
+            max_new_tokens=512,
+            do_sample=False,
+            repetition_penalty=1.03,
             huggingfacehub_api_token=api_key,
+            provider="auto",  # let Hugging Face choose the best provider for you
+            timeout=timeout,
         )
-        self._chain = _PROMPT | ChatHuggingFace(llm=endpoint)
+
+        self._chain = _PROMPT | ChatHuggingFace(llm=llm)
 
     def generate(self, question: str, context: list[Document]) -> str:
         context_text = "\n\n---\n\n".join(d.page_content for d in context)

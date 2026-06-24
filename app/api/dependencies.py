@@ -42,6 +42,7 @@ def build_pipeline() -> RAGPipeline:
         llm = AnthropicChatLLM(
             api_key=settings.anthropic_api_key,
             model=settings.anthropic_llm_model,
+            timeout=settings.llm_timeout,
         )
     elif settings.llm_provider == "google":
         embedder = GoogleEmbedder(
@@ -51,12 +52,14 @@ def build_pipeline() -> RAGPipeline:
         llm = GoogleChatLLM(
             api_key=settings.google_api_key,
             model=settings.google_llm_model,
+            timeout=settings.llm_timeout,
         )
     elif settings.llm_provider == "huggingface":
         embedder = HuggingFaceEmbedder(model=settings.huggingface_embedding_model)
         llm = HuggingFaceChatLLM(
             api_key=settings.huggingface_api_key,
             model=settings.huggingface_llm_model,
+            timeout=settings.llm_timeout,
         )
     else:
         embedder = OpenAIEmbedder(
@@ -66,6 +69,7 @@ def build_pipeline() -> RAGPipeline:
         llm = OpenAIChatLLM(
             api_key=settings.openai_api_key,
             model=settings.llm_model,
+            timeout=settings.llm_timeout,
         )
 
     vector_store = FAISSVectorStore(

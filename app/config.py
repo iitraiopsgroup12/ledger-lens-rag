@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     faiss_index_path: str = Field("faiss_index", alias="FAISS_INDEX_PATH")
     default_top_k: int = Field(4, alias="DEFAULT_TOP_K")
 
+    # Max seconds to wait for an LLM generation before timing out (default 1 hour).
+    llm_timeout: int = Field(3600, alias="LLM_TIMEOUT")
+
     # Per-document-type adaptive chunking
     invoice_chunk_size: int = Field(400, alias="INVOICE_CHUNK_SIZE")
     invoice_chunk_overlap: int = Field(50, alias="INVOICE_CHUNK_OVERLAP")
