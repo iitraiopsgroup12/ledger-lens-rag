@@ -1,4 +1,7 @@
+import logging
 from enum import Enum
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentType(str, Enum):
@@ -35,8 +38,10 @@ class DocumentClassifier:
         # Stage 1: file_type short-circuits (highest confidence)
         file_type = metadata.get("file_type", "")
         if file_type in {"xlsx", "xls", "csv"}:
+            logger.debug("Classified as TABULAR via file_type=%s", file_type)
             return DocumentType.TABULAR
         if file_type == "md":
+            logger.debug("Classified as MARKDOWN via file_type=%s", file_type)
             return DocumentType.MARKDOWN
 
         # Stage 2: keyword density scoring
@@ -67,5 +72,14 @@ class DocumentClassifier:
         # Decision
         best_type = max(scores, key=lambda dt: scores[dt])
         if scores[best_type] < _SCORE_THRESHOLD:
+            logger.debug(
+                "Classified as NARRATIVE (best=%s score=%.2f below threshold %.2f)",
+                best_type.value,
+                scores[best_type],
+                _SCORE_THRESHOLD,
+            )
             return DocumentType.NARRATIVE
+        logger.debug(
+            "Classified as %s (score=%.2f)", best_type.value, scores[best_type]
+        )
         return best_type

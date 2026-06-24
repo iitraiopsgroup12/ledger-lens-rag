@@ -1,14 +1,17 @@
+import logging
 import os
 from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
+logger = logging.getLogger(__name__)
+
 # Resolve the .env file location: use APP_CONFIG_PATH if set, otherwise the
 # project-local .env.  APP_CONFIG_PATH should be a directory; .env is appended.
 _config_dir = os.environ.get("APP_CONFIG_PATH", "")
 _env_file = str(Path(_config_dir) / ".env") if _config_dir else ".env"
-print(_env_file)
+logger.debug("Loading settings from env file: %s", _env_file)
 
 class Settings(BaseSettings):
     # Provider selection: "openai" | "anthropic"

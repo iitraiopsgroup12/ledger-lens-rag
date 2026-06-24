@@ -1,7 +1,11 @@
+import logging
+
 from langchain_core.documents import Document
 from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 
 from app.core.interfaces import BaseChunker
+
+logger = logging.getLogger(__name__)
 
 
 class RecursiveChunker(BaseChunker):
@@ -122,4 +126,10 @@ class AdaptiveChunker(BaseChunker):
         chunks = self._chunkers[doc_type].split(text, metadata)
         for chunk in chunks:
             chunk.metadata["doc_type"] = doc_type.value
+        logger.info(
+            "AdaptiveChunker classified %d chars as %s → %d chunk(s)",
+            len(text),
+            doc_type.value,
+            len(chunks),
+        )
         return chunks

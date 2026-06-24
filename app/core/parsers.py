@@ -1,9 +1,12 @@
 from abc import ABC, abstractmethod
 import csv
 import io
+import logging
 from pathlib import Path
 
 from app.exceptions import EmptyFileError, FileParseError, UnsupportedFileTypeError
+
+logger = logging.getLogger(__name__)
 
 
 class BaseParser(ABC):
@@ -36,6 +39,7 @@ class PDFParser(BaseParser):
                     pages.append(extracted)
             result = "\n\n".join(pages).strip()
         except Exception as exc:
+            logger.warning("Failed to parse PDF %s: %s", filename, exc)
             raise FileParseError(filename, str(exc)) from exc
         if not result:
             raise EmptyFileError(filename)
@@ -59,6 +63,7 @@ class DocxParser(BaseParser):
                         parts.append(row_text)
             result = "\n".join(parts).strip()
         except Exception as exc:
+            logger.warning("Failed to parse DOCX %s: %s", filename, exc)
             raise FileParseError(filename, str(exc)) from exc
         if not result:
             raise EmptyFileError(filename)
@@ -76,6 +81,7 @@ class ExcelParser(BaseParser):
         except (EmptyFileError, FileParseError):
             raise
         except Exception as exc:
+            logger.warning("Failed to parse Excel %s: %s", filename, exc)
             raise FileParseError(filename, str(exc)) from exc
         if not result.strip():
             raise EmptyFileError(filename)
@@ -124,6 +130,7 @@ class CsvParser(BaseParser):
             rows = ["\t".join(row) for row in reader if any(cell.strip() for cell in row)]
             result = "\n".join(rows).strip()
         except Exception as exc:
+            logger.warning("Failed to parse CSV %s: %s", filename, exc)
             raise FileParseError(filename, str(exc)) from exc
         if not result:
             raise EmptyFileError(filename)
@@ -148,6 +155,7 @@ class XmlParser(BaseParser):
             _walk(root)
             result = "\n".join(lines).strip()
         except Exception as exc:
+            logger.warning("Failed to parse XML %s: %s", filename, exc)
             raise FileParseError(filename, str(exc)) from exc
         if not result:
             raise EmptyFileError(filename)
@@ -169,8 +177,11 @@ _REGISTRY: dict[str, BaseParser] = {
 def get_parser(filename: str) -> BaseParser:
     ext = Path(filename).suffix.lower()
     if ext not in _REGISTRY:
+        logger.warning("Unsupported file type %r for file %s", ext, filename)
         raise UnsupportedFileTypeError(ext)
-    return _REGISTRY[ext]
+    parser = _REGISTRY[ext]
+    logger.debug("Selected %s for %s", type(parser).__name__, filename)
+    return parser
 
 
 def supported_extensions() -> list[str]:

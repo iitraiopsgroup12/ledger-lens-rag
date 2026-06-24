@@ -1,3 +1,4 @@
+import logging
 from functools import lru_cache
 
 from app.config import settings
@@ -7,6 +8,8 @@ from app.core.llm import AnthropicChatLLM, GoogleChatLLM, HuggingFaceChatLLM, Op
 from app.core.pipeline import RAGPipeline
 from app.core.vector_store import FAISSVectorStore
 
+logger = logging.getLogger(__name__)
+
 
 @lru_cache(maxsize=1)
 def build_pipeline() -> RAGPipeline:
@@ -15,6 +18,7 @@ def build_pipeline() -> RAGPipeline:
     Set LLM_PROVIDER=anthropic in .env to switch the LLM + embedder to the
     Anthropic stack (Claude LLM + Voyage AI embeddings). Defaults to OpenAI.
     """
+    logger.info("Building RAG pipeline (provider=%s)", settings.llm_provider)
     chunker = AdaptiveChunker(
         invoice_chunk_size=settings.invoice_chunk_size,
         invoice_chunk_overlap=settings.invoice_chunk_overlap,
@@ -68,6 +72,7 @@ def build_pipeline() -> RAGPipeline:
         embedder=embedder,
         index_path=settings.faiss_index_path,
     )
+    logger.info("RAG pipeline assembled successfully")
     return RAGPipeline(chunker=chunker, vector_store=vector_store, llm=llm)
 
 
