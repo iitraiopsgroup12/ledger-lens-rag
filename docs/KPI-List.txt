@@ -1,0 +1,669 @@
+# Top 500 Financial Analysis KPIs (Consolidated by Categories)
+
+## 1. Revenue & Growth KPIs
+
+1. Revenue Growth
+2. Quarterly Revenue Growth
+3. YoY Revenue Growth
+4. QoQ Revenue Growth
+5. CAGR Revenue Growth
+6. Organic Revenue Growth
+7. Inorganic Revenue Growth
+8. Domestic Revenue Growth
+9. International Revenue Growth
+10. Segment Revenue Growth
+11. Product Revenue Growth
+12. Subscription Revenue Growth
+13. Service Revenue Growth
+14. ARR (Annual Recurring Revenue)
+15. MRR (Monthly Recurring Revenue)
+16. Deferred Revenue Growth
+17. Revenue Per Customer
+18. Revenue Concentration Ratio
+19. New Customer Revenue
+20. Existing Customer Revenue
+21. Revenue Retention Rate
+22. Net Revenue Retention
+23. Gross Revenue Retention
+24. Revenue Visibility Ratio
+25. Revenue Diversification Index
+
+---
+
+## 2. Profitability KPIs
+
+26. Gross Profit
+27. Gross Profit Margin
+28. EBITDA
+29. EBITDA Margin
+30. EBIT
+31. EBIT Margin
+32. Operating Profit
+33. Operating Margin
+34. Net Profit
+35. Net Profit Margin
+36. Pretax Margin
+37. Contribution Margin
+38. Segment Profitability
+39. Incremental Margin
+40. Cash Profit Margin
+41. Core Profit Margin
+42. Profit Per Employee
+43. Profit Per Branch
+44. Economic Profit
+45. Residual Income
+46. Earnings Yield
+47. Owner Earnings
+48. Normalized Earnings
+49. Adjusted EBITDA
+50. Earnings Quality Ratio
+
+---
+
+## 3. Earnings & Shareholder KPIs
+
+51. Earnings Per Share (EPS)
+52. Diluted EPS
+53. Adjusted EPS
+54. EPS Growth
+55. Book Value Per Share
+56. Tangible Book Value Per Share
+57. Dividend Per Share
+58. Dividend Yield
+59. Dividend Payout Ratio
+60. Retention Ratio
+61. Buyback Yield
+62. Share Count Growth
+63. Share Dilution Rate
+64. Shareholder Yield
+65. Total Shareholder Return
+66. Market Capitalization
+67. Enterprise Value
+68. EV/EBITDA
+69. EV/Sales
+70. EV/FCF
+71. Price-to-Earnings Ratio
+72. Forward PE Ratio
+73. Price-to-Book Ratio
+74. PEG Ratio
+75. Price-to-Sales Ratio
+
+---
+
+## 4. Return Ratios
+
+76. Return on Equity (ROE)
+77. Return on Assets (ROA)
+78. Return on Capital Employed (ROCE)
+79. Return on Invested Capital (ROIC)
+80. Return on Tangible Equity
+81. Return on Incremental Capital
+82. Return on Net Worth
+83. Return on Fixed Assets
+84. Return on Total Capital
+85. Return on Working Capital
+86. Cash Return on Assets
+87. Cash Return on Equity
+88. Return on Revenue
+89. Return on Sales
+90. Economic Value Added (EVA)
+91. Market Value Added (MVA)
+92. Return on Human Capital
+93. Return on Innovation Spend
+94. Return on Marketing Spend
+95. Return on Digital Assets
+
+---
+
+## 5. Cash Flow KPIs
+
+96. Operating Cash Flow
+97. Free Cash Flow
+98. Free Cash Flow to Firm
+99. Free Cash Flow to Equity
+100. Cash Flow Margin
+101. Cash Conversion Ratio
+102. Cash Conversion Cycle
+103. Operating Cash Flow Ratio
+104. Cash Interest Coverage
+105. Cash Taxes Paid
+106. Cash Flow Per Share
+107. CapEx Ratio
+108. Cash Burn Rate
+109. Runway Ratio
+110. Cash Reinvestment Ratio
+111. Cash Return on Invested Capital
+112. Funds From Operations
+113. Adjusted Funds From Operations
+114. Cash Collection Efficiency
+115. Net Cash Position
+
+---
+
+## 6. Liquidity KPIs
+
+116. Current Ratio
+117. Quick Ratio
+118. Cash Ratio
+119. Working Capital
+120. Net Working Capital Ratio
+121. Liquidity Coverage Ratio
+122. Operating Liquidity Ratio
+123. Accounts Receivable Ratio
+124. Inventory Liquidity Ratio
+125. Days Cash on Hand
+126. Treasury Liquidity Ratio
+127. Current Asset Coverage
+128. Short-Term Debt Coverage
+129. Liquid Asset Ratio
+130. Immediate Solvency Ratio
+
+---
+
+## 7. Solvency & Debt KPIs
+
+131. Debt-to-Equity Ratio
+132. Debt-to-Assets Ratio
+133. Net Debt-to-EBITDA
+134. Interest Coverage Ratio
+135. Debt Service Coverage Ratio
+136. Long-Term Debt Ratio
+137. Financial Leverage Ratio
+138. Fixed Charge Coverage Ratio
+139. Solvency Ratio
+140. Equity Multiplier
+141. Net Debt Ratio
+142. Borrowing Cost Ratio
+143. Capital Structure Ratio
+144. Debt Maturity Profile
+145. Floating Debt Ratio
+146. Secured Debt Ratio
+147. Covenant Coverage Ratio
+148. Lease Liability Ratio
+149. Funding Stability Ratio
+150. Credit Utilization Ratio
+
+---
+
+## 8. Efficiency & Productivity KPIs
+
+151. Asset Turnover Ratio
+152. Fixed Asset Turnover
+153. Inventory Turnover
+154. Receivables Turnover
+155. Payables Turnover
+156. Working Capital Turnover
+157. Revenue Per Employee
+158. EBITDA Per Employee
+159. Employee Productivity Ratio
+160. Utilization Rate
+161. Capacity Utilization
+162. Production Yield
+163. Cost Efficiency Ratio
+164. SG&A Ratio
+165. Opex Ratio
+166. Administrative Expense Ratio
+167. Procurement Efficiency Ratio
+168. Plant Efficiency Ratio
+169. Logistics Efficiency Ratio
+170. Operational Leverage Ratio
+
+---
+
+## 9. Working Capital KPIs
+
+171. Days Sales Outstanding
+172. Days Payable Outstanding
+173. Inventory Days
+174. Cash Conversion Cycle
+175. Receivable Aging Ratio
+176. Inventory Obsolescence Ratio
+177. Supplier Payment Cycle
+178. Working Capital Requirement
+179. Inventory Carrying Cost
+180. Stock-out Ratio
+181. Collection Period
+182. Payment Default Ratio
+183. Inventory Shrinkage Ratio
+184. Procurement Lead Time
+185. Fulfillment Cycle Time
+
+---
+
+## 10. Valuation KPIs
+
+186. Intrinsic Value
+187. Margin of Safety
+188. Discounted Cash Flow Value
+189. Replacement Cost Value
+190. Tobin’s Q Ratio
+191. Earnings Yield
+192. Graham Number
+193. EV/Operating Cash Flow
+194. Price/Cash Flow Ratio
+195. Enterprise Value/Assets
+196. EV/Invested Capital
+197. Dividend Discount Value
+198. Sum-of-the-Parts Valuation
+199. Relative Valuation Premium
+200. Market Implied Growth Rate
+
+---
+
+## 11. Dividend & Capital Allocation KPIs
+
+201. Dividend Growth Rate
+202. Capital Allocation Efficiency
+203. Share Buyback Ratio
+204. Reinvestment Ratio
+205. CapEx to Sales Ratio
+206. Acquisition Spend Ratio
+207. R&D Investment Ratio
+208. Strategic Investment Ratio
+209. Internal Funding Ratio
+210. Cash Distribution Ratio
+211. Capital Return Ratio
+212. Shareholder Distribution Ratio
+213. Retained Earnings Growth
+214. Treasury Stock Ratio
+215. Acquisition ROI
+
+---
+
+## 12. Governance & Management KPIs
+
+216. Promoter Holding
+217. Promoter Pledge Ratio
+218. Institutional Ownership
+219. Insider Ownership
+220. Auditor Tenure
+221. Auditor Change Frequency
+222. Board Independence Ratio
+223. Women Director Ratio
+224. Executive Compensation Ratio
+225. CEO Pay Ratio
+226. Related Party Transaction Ratio
+227. Governance Compliance Score
+228. Shareholder Approval Ratio
+229. Board Meeting Attendance
+230. Management Guidance Accuracy
+231. Insider Trading Activity
+232. Succession Planning Score
+233. Ethics Violation Ratio
+234. Litigation Exposure Ratio
+235. Regulatory Penalty Ratio
+
+---
+
+## 13. ESG & Sustainability KPIs
+
+236. ESG Score
+237. Carbon Emissions Intensity
+238. Renewable Energy Usage
+239. Water Usage Efficiency
+240. Waste Recycling Ratio
+241. Sustainability Spend Ratio
+242. Employee Diversity Ratio
+243. Safety Incident Rate
+244. Community Investment Ratio
+245. Green Revenue Ratio
+246. Net Zero Progress Score
+247. Environmental Compliance Ratio
+248. Social Impact Score
+249. Governance Risk Score
+250. Sustainability Disclosure Score
+
+---
+
+## 14. Banking Sector KPIs
+
+251. Net Interest Margin
+252. CASA Ratio
+253. Gross NPA Ratio
+254. Net NPA Ratio
+255. Provision Coverage Ratio
+256. Capital Adequacy Ratio
+257. Tier 1 Capital Ratio
+258. Cost-to-Income Ratio
+259. Loan-to-Deposit Ratio
+260. Slippage Ratio
+261. Credit Growth Ratio
+262. Yield on Advances
+263. Cost of Funds
+264. Net Interest Income Growth
+265. Treasury Income Ratio
+266. Retail Loan Ratio
+267. Corporate Loan Ratio
+268. Secured Loan Ratio
+269. Credit Deposit Ratio
+270. Banking Efficiency Ratio
+
+---
+
+## 15. Insurance Sector KPIs
+
+271. Claim Settlement Ratio
+272. Loss Ratio
+273. Combined Ratio
+274. Expense Ratio
+275. Persistency Ratio
+276. Solvency Margin Ratio
+277. Premium Growth Ratio
+278. Underwriting Margin
+279. Investment Yield Ratio
+280. Policy Renewal Ratio
+281. Claim Processing Time
+282. Insurance Penetration Ratio
+283. Risk Retention Ratio
+284. Embedded Value Growth
+285. New Business Margin
+
+---
+
+## 16. Manufacturing KPIs
+
+286. Production Volume Growth
+287. Yield Efficiency
+288. Defect Rate
+289. Scrap Ratio
+290. Downtime Ratio
+291. Machine Utilization
+292. Throughput Ratio
+293. Energy Cost Ratio
+294. Manufacturing Cost Per Unit
+295. Maintenance Cost Ratio
+296. Supply Chain Reliability
+297. Procurement Savings Ratio
+298. Factory Automation Ratio
+299. Quality Control Pass Rate
+300. Production Lead Time
+
+---
+
+## 17. Retail & Consumer KPIs
+
+301. Same Store Sales Growth
+302. Basket Size
+303. Footfall Growth
+304. Customer Retention Rate
+305. Customer Acquisition Cost
+306. Customer Lifetime Value
+307. Gross Merchandise Value
+308. Average Transaction Value
+309. Inventory Sell-through Ratio
+310. Store Productivity Ratio
+311. Conversion Rate
+312. Loyalty Program Participation
+313. Return Rate
+314. Stock Availability Ratio
+315. Omnichannel Revenue Ratio
+
+---
+
+## 18. SaaS & Technology KPIs
+
+316. ARR Growth
+317. MRR Growth
+318. Churn Rate
+319. Net Dollar Retention
+320. Customer Acquisition Cost
+321. Lifetime Value Ratio
+322. CAC Payback Period
+323. Gross Retention Rate
+324. Net Retention Rate
+325. Active User Growth
+326. DAU/MAU Ratio
+327. Revenue Per User
+328. Cloud Cost Ratio
+329. API Usage Growth
+330. Product Adoption Rate
+331. Feature Utilization Ratio
+332. Uptime Percentage
+333. Cybersecurity Incident Ratio
+334. SaaS Magic Number
+335. Burn Multiple
+
+---
+
+## 19. Telecom KPIs
+
+336. Average Revenue Per User
+337. Subscriber Growth Rate
+338. Churn Rate
+339. Data Usage Per User
+340. Network Availability Ratio
+341. Spectrum Utilization Ratio
+342. Customer Complaint Ratio
+343. Broadband Penetration Ratio
+344. Postpaid Conversion Ratio
+345. Fiber Utilization Ratio
+
+---
+
+## 20. Pharma & Healthcare KPIs
+
+346. R&D Intensity Ratio
+347. Drug Approval Success Rate
+348. Clinical Trial Success Rate
+349. Patent Expiry Exposure
+350. Generic Revenue Ratio
+351. Hospital Occupancy Ratio
+352. Average Revenue Per Bed
+353. Patient Satisfaction Score
+354. Medical Claims Ratio
+355. Healthcare Compliance Score
+
+---
+
+## 21. Energy & Utilities KPIs
+
+356. Plant Load Factor
+357. Transmission Loss Ratio
+358. Fuel Cost Ratio
+359. Renewable Energy Share
+360. Reserve Replacement Ratio
+361. Production Efficiency Ratio
+362. Energy Trading Margin
+363. Capacity Addition Ratio
+364. Power Purchase Cost Ratio
+365. Distribution Efficiency Ratio
+
+---
+
+## 22. Real Estate KPIs
+
+366. Occupancy Rate
+367. Rental Yield
+368. Lease Renewal Rate
+369. Pre-sales Growth
+370. Construction Completion Ratio
+371. Unsold Inventory Ratio
+372. Debt per Project
+373. Average Selling Price Growth
+374. Realization Ratio
+375. Rental Collection Efficiency
+
+---
+
+## 23. Logistics & Transportation KPIs
+
+376. Fleet Utilization Ratio
+377. Delivery Success Rate
+378. Freight Cost Ratio
+379. On-time Delivery Rate
+380. Warehouse Utilization Ratio
+381. Route Efficiency Ratio
+382. Fuel Efficiency Ratio
+383. Average Delivery Time
+384. Logistics Cost Per Unit
+385. Shipment Accuracy Ratio
+
+---
+
+## 24. Risk Management KPIs
+
+386. Value at Risk
+387. Stress Test Coverage
+388. Operational Risk Ratio
+389. Fraud Detection Rate
+390. Credit Risk Exposure
+391. Market Risk Exposure
+392. Liquidity Risk Ratio
+393. Currency Risk Ratio
+394. Hedging Effectiveness
+395. Cyber Risk Exposure
+
+---
+
+## 25. Taxation KPIs
+
+396. Effective Tax Rate
+397. Cash Tax Rate
+398. Deferred Tax Ratio
+399. Tax Compliance Ratio
+400. Tax Litigation Exposure
+
+---
+
+## 26. Innovation & R&D KPIs
+
+401. Patent Count
+402. Patent Commercialization Ratio
+403. Innovation Revenue Ratio
+404. R&D Spend Growth
+405. Time-to-Market Ratio
+406. Product Launch Success Rate
+407. Innovation ROI
+408. Research Efficiency Ratio
+409. Technology Adoption Rate
+410. Digital Transformation Score
+
+---
+
+## 27. Human Capital KPIs
+
+411. Employee Attrition Rate
+412. Employee Satisfaction Score
+413. Employee Engagement Score
+414. Training Hours Per Employee
+415. Revenue Per Employee
+416. Profit Per Employee
+417. Diversity Ratio
+418. Hiring Efficiency Ratio
+419. Leadership Stability Ratio
+420. Absenteeism Rate
+
+---
+
+## 28. Market & Competitive KPIs
+
+421. Market Share
+422. Relative Market Share
+423. Brand Value Growth
+424. Competitive Pricing Index
+425. Customer Satisfaction Score
+426. Net Promoter Score
+427. Brand Retention Ratio
+428. Competitive Win Ratio
+429. Customer Loyalty Ratio
+430. Market Penetration Ratio
+
+---
+
+## 29. Digital & E-commerce KPIs
+
+431. Website Conversion Rate
+432. Traffic Growth Rate
+433. Mobile App Retention Rate
+434. Digital Revenue Ratio
+435. Average Session Duration
+436. Bounce Rate
+437. Cost Per Click
+438. Return on Ad Spend
+439. Cart Abandonment Rate
+440. E-commerce Fulfillment Ratio
+
+---
+
+## 30. Advanced Investment KPIs
+
+441. Alpha
+442. Beta
+443. Sharpe Ratio
+444. Sortino Ratio
+445. Information Ratio
+446. Treynor Ratio
+447. Jensen’s Alpha
+448. Tracking Error
+449. Volatility Ratio
+450. Downside Deviation
+451. Correlation Coefficient
+452. Portfolio Concentration Ratio
+453. Drawdown Ratio
+454. Recovery Ratio
+455. Risk-adjusted Return
+
+---
+
+## 31. Macro & Economic KPIs
+
+456. GDP Growth Sensitivity
+457. Inflation Sensitivity
+458. Interest Rate Sensitivity
+459. Currency Exposure Ratio
+460. Commodity Exposure Ratio
+461. Export Dependency Ratio
+462. Import Dependency Ratio
+463. Economic Moat Score
+464. Cyclicality Ratio
+465. Recession Resilience Score
+
+---
+
+## 32. Credit Rating & Bond KPIs
+
+466. Credit Rating Score
+467. Yield to Maturity
+468. Bond Duration
+469. Coupon Coverage Ratio
+470. Credit Spread
+471. Bond Default Probability
+472. Recovery Rate
+473. Debt Issuance Growth
+474. Bond Liquidity Ratio
+475. Fixed Income Coverage Ratio
+
+---
+
+## 33. Audit & Compliance KPIs
+
+476. Audit Qualification Ratio
+477. Internal Control Deficiency Count
+478. Regulatory Filing Timeliness
+479. Compliance Cost Ratio
+480. Financial Restatement Frequency
+481. Audit Observation Closure Rate
+482. Statutory Compliance Score
+483. Legal Dispute Ratio
+484. Governance Audit Score
+485. Transparency Score
+
+---
+
+## 34. Sector-Neutral Advanced KPIs
+
+486. Economic Profit Spread
+487. Incremental ROIC
+488. Cash Earnings Ratio
+489. Sustainable Growth Rate
+490. Financial Flexibility Ratio
+491. Capital Efficiency Ratio
+492. Strategic Optionality Score
+493. Franchise Strength Index
+494. Resilience Score
+495. Long-term Value Creation Ratio
+496. Competitive Durability Score
+497. Operational Excellence Score
+498. Innovation Strength Score
+499. Stakeholder Value Index
+500. Business Quality Score
