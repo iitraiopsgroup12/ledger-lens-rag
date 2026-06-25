@@ -1,3 +1,5 @@
 .idea/
 .env
 ledger-lens-rag-chart/values.local.yaml
+*.pyc
+/app/__pycache__

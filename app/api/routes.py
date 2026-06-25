@@ -6,18 +6,26 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 
-from app.api.dependencies import get_pipeline
+from app.api.dependencies import get_kpi_service, get_pipeline
 from app.api.schemas import (
     HealthResponse,
     IngestRequest,
     IngestResponse,
+    KpiApproveRequest,
+    KpiChatResponse,
     QueryRequest,
     QueryResponse,
     SourceDocumentResponse,
 )
 from app.core.parsers import get_parser
 from app.core.pipeline import IngestDocument, RAGPipeline
-from app.exceptions import EmptyFileError, ProviderUnavailableError, ValidationError
+from app.exceptions import (
+    EmptyFileError,
+    KpiWorkflowError,
+    ProviderUnavailableError,
+    ValidationError,
+)
+from app.kpi.service import KPIService, KpiResult
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1")
@@ -222,6 +230,88 @@ async def query_with_file(
         ],
         took_ms=result.took_ms,
     )
+
+
+def _kpi_response(result: KpiResult) -> KpiChatResponse:
+    return KpiChatResponse(
+        session_id=result.session_id,
+        status=result.status,
+        company=result.company,
+        kpis=result.kpis,
+        message=result.message,
+        pending_approval=result.pending_approval,
+        steps=result.steps,
+        took_ms=result.took_ms,
+    )
+
+
+@router.post("/kpi/chat", response_model=KpiChatResponse)
+async def kpi_chat(
+    email: str = Form(..., min_length=1, description="User email — chat-memory session key"),
+    symbol: str = Form(..., min_length=1, description="Company stock symbol to analyze"),
+    message: str = Form(..., min_length=1, description="Natural-language KPI request"),
+    file: UploadFile | None = File(None, description="Optional extra document for added context"),
+    session_id: str | None = Form(None, description="Optional parallel thread for this email"),
+    service: KPIService = Depends(get_kpi_service),
+) -> KpiChatResponse:
+    file_bytes: bytes | None = None
+    file_name: str | None = None
+    if file is not None:
+        file_name = file.filename or "upload"
+        get_parser(file_name)  # raises UnsupportedFileTypeError early, before reading
+        file_bytes = await file.read()
+        if not file_bytes:
+            raise EmptyFileError(file_name)
+
+    logger.info(
+        "POST /kpi/chat — email=%s symbol=%s session=%s file=%s", email, symbol, session_id, file_name
+    )
+
+    loop = asyncio.get_event_loop()
+    try:
+        result = await loop.run_in_executor(
+            None,
+            partial(service.chat, email, symbol, message, file_bytes, file_name, session_id),
+        )
+    except Exception as exc:
+        if "openai" in str(exc).lower() or "connection" in str(exc).lower():
+            raise ProviderUnavailableError() from exc
+        raise KpiWorkflowError(str(exc)) from exc
+
+    return _kpi_response(result)
+
+
+@router.post("/kpi/approve", response_model=KpiChatResponse)
+async def kpi_approve(
+    body: KpiApproveRequest,
+    service: KPIService = Depends(get_kpi_service),
+) -> KpiChatResponse:
+    logger.info(
+        "POST /kpi/approve — email=%s session=%s decision=%s",
+        body.email,
+        body.session_id,
+        body.decision,
+    )
+
+    loop = asyncio.get_event_loop()
+    try:
+        result = await loop.run_in_executor(
+            None,
+            partial(
+                service.resume,
+                body.email,
+                body.session_id,
+                body.interrupt_id or "",
+                body.decision,
+                body.feedback,
+            ),
+        )
+    except Exception as exc:
+        if "openai" in str(exc).lower() or "connection" in str(exc).lower():
+            raise ProviderUnavailableError() from exc
+        raise KpiWorkflowError(str(exc)) from exc
+
+    return _kpi_response(result)
 
 
 @router.get("/health", response_model=HealthResponse)

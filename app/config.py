@@ -49,6 +49,25 @@ class Settings(BaseSettings):
     # Max seconds to wait for an LLM generation before timing out (default 1 hour).
     llm_timeout: int = Field(3600, alias="LLM_TIMEOUT")
 
+    # --- KPI agentic workflow ---
+    # PostgreSQL metadata DB backing the KPI repository. DATABASE_URL, if set,
+    # wins; otherwise it is assembled from the POSTGRES_* parts below.
+    database_url_override: str = Field("", alias="DATABASE_URL")
+    postgres_host: str = Field("localhost", alias="POSTGRES_HOST")
+    postgres_port: str = Field("5432", alias="POSTGRES_PORT")
+    postgres_user: str = Field("postgres", alias="POSTGRES_USER")
+    postgres_password: str = Field("postgres", alias="POSTGRES_PASSWORD")
+    postgres_db: str = Field("postgres", alias="POSTGRES_DB")
+    # Local filesystem root for LocalFileStorage document retrieval.
+    storage_dir: str = Field("storage", alias="STORAGE_DIR")
+    # KPI catalog + prompt template sources.
+    kpi_list_path: str = Field("docs/KPI-List.txt", alias="KPI_LIST_PATH")
+    kpi_prompt_path: str = Field("docs/kpi-prompt.md", alias="KPI_PROMPT_PATH")
+    # Require human-in-the-loop approval before final KPI generation.
+    kpi_require_approval: bool = Field(True, alias="KPI_REQUIRE_APPROVAL")
+    # Allow admin-role users to bypass the watchlist authorization guardrail.
+    kpi_admin_bypass: bool = Field(False, alias="KPI_ADMIN_BYPASS")
+
     # Per-document-type adaptive chunking
     invoice_chunk_size: int = Field(400, alias="INVOICE_CHUNK_SIZE")
     invoice_chunk_overlap: int = Field(50, alias="INVOICE_CHUNK_OVERLAP")
@@ -61,7 +80,17 @@ class Settings(BaseSettings):
     markdown_chunk_size: int = Field(1000, alias="MARKDOWN_CHUNK_SIZE")
     markdown_chunk_overlap: int = Field(100, alias="MARKDOWN_CHUNK_OVERLAP")
 
-    model_config = {"env_file": _env_file, "populate_by_name": True}
+    model_config = {"env_file": _env_file, "populate_by_name": True, "extra": "ignore"}
+
+    @property
+    def database_url(self) -> str:
+        """SQLAlchemy URL for the KPI repository (psycopg driver)."""
+        if self.database_url_override:
+            return self.database_url_override
+        return (
+            f"postgresql+psycopg://{self.postgres_user}:{self.postgres_password}"
+            f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+        )
 
 
 settings = Settings()

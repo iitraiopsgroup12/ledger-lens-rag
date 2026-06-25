@@ -1,31 +1,40 @@
+## Role
 
-Create Detail prompt draft in markdown in /docs, to create Agentic AI Workflow With the following requirement
-to create API 
+You are a senior Python/FastAPI + LangChain/LangGraph engineer extending the
+**LedgerLens RAG** service. Add a new **`/kpi` conversational endpoint** backed by
+an **agentic workflow** that, given a natural-language request and a user's email,
+identifies the company, enforces an access-scope guardrail, fetches and parses the
+company's filing, and generates a **structured KPI JSON** using the project's
+existing LLM stack. The workflow is **stateful per user** (chat memory keyed by
+email) and supports **human-in-the-loop (HITL) approval** before the final KPI
+generation.
 
-1. There will be new rest endpoint with /kpi responsible to performa analysis of different KPI defined  in the file 
-2. The /kpi chat will accept the user email to maintain chat memory also additional file upload as optional if user
-   wants to include this file during KPI generation.
+Requirements: 
+1. There will be new rest endpoint with /kpi responsible to performa analysis of different KPI  
+2. The /kpi chat will accept the user email, Company Symbol, Chat Message as KPI Query.
+3. The /kpi should save the history of chat 
+4. The /kpi also will have Human-in-the-loop approval capability to suggest user further to add more KPI 
 3. The /kpi will make call to KPIServie to initiate the Agentic Workflow which involved the following sequence
-   3.1 The agentic workflow first analyse the prompt text to identify the company name of its company symbol. 
-       for this analysis the workflow make call to database table companies, watchlist and the user. the SQL table 
-       defination available in /docs/db.sql
-       if user email is not attached to company as mapping is available in watchlist the agent will stop and 
-       response back to the use "The Analysis of this company is not in your scope" as guardrails part.
-   3.2 if email is attached to the company the next stop of agentic workflow to get the document of the company 
-       The documents information for the company is available in DB table documents, annual_report and financial_results.
-       Check all the fields of this table as use can ask about KPI in natural language.
-       the value from DB related to the company and the location of document is available in s3_ksy
-   3.4 The Next is based on the s3_key, if Key is not the agentic workflow will get the document with the help of package 
-       nsc_data_storage default implementation of DataStorage retrieve() method
-   3.5 The Next Agent will parse the document based on the default parser available in the existing api. and preprocess
-       to get textual content. 
-   4.5 Next agent will design the prompt to generate the formated JSON output of KPI.
-   4.6 Next the Agentic work flow will make a call to LLM that are available in llm.py and generate the response.
 
-4. The possible list of KPI user can ask is available in KPI-List.txt in Categories 
-5. The prompt for the KPI available in /docs/kpi-prompt.ml
+Access Provided:
+1.  There is existing PostgreSQL hosted on local host, The tables list available in /docs/db.sql
+2.  List of financial document can be access from with help of nsc_data_storage LocalFileStorage class retrieve() method passing the storage id
+3.  The Storage will be retrieve from documents table from db and with column name s3_key. 
+4.  If the s3_kay  value start with "file://" the LocalFileStorage class should be use 
+5.  If the s3_kay  value start with "aws://" the AwsFileStorage class should be use 
+
+Agentic AI Workflow: Tobe initiated from KPIServie
+1.  The Agentic AI with start with Guardrail that check if Chat Message is related to finance domain else agentic workflow return appropriated response 
+2.  The Workflow start with accepting the Company Symbol, Read the Values from companies db table. Agent should move to next step if company row found.
+3.  The Next step to check the email address provided if the is available with this email. Agent should move to next step if User row found.
+4.  The Next Step is check in database if user and companies are mapped based on the relationship available in db table watchlist. Agent should move to next step if mapping row found.
+5.  The Next Step is to get information about all document location related to company fetch from database. Fetch all the rows from documents  table with company_id. Agent should move to next step if documents found.
+6.  The Next Step is to get s3_key from document table, Get document from Storage DataStorage implementation, Parse the document based on the default parser available in the existing api. and preprocess to get textual content.
+8.  The Next step is with the help of llm, validate the parsed document against the KPI duration that user ask in chat message.  
+9.  The next step is  the agent will design the prompt to generate the formated JSON output of KPI. The possible list of KPI user can ask is available in KPI-List.txt in Categories The prompt for the KPI available in /docs/kpi-prompt.ml
+10. Next the Agentic work flow will make a call to LLM with the documents that are available in llm.py and generate the response 
 
 Nots: Consider the existing application and langchain framework to implement Agentic API Workflow
-the /kpi should same the history of chat also will have Human-in-the-loop approval capability. 
-The /KPI should maintain the saperate session based on the email of user to store the history and Human-in-the-loop approval.
+
+The /KPI should maintain the separate session based on the email of user to store the history and Human-in-the-loop approval.
 

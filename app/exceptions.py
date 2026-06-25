@@ -42,6 +42,11 @@ class EmptyFileError(RAGException):
         super().__init__("EMPTY_FILE", f"File '{filename}' produced no extractable text", 400)
 
 
+class KpiWorkflowError(RAGException):
+    def __init__(self, message: str = "KPI workflow failed"):
+        super().__init__("KPI_WORKFLOW_ERROR", message, 500)
+
+
 def _error_body(code: str, message: str) -> dict:
     return {"error": {"code": code, "message": message}}
 

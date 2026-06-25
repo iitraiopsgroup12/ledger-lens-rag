@@ -46,3 +46,24 @@ class HealthResponse(BaseModel):
     status: str
     index_loaded: bool
     vector_count: int
+
+
+class KpiChatResponse(BaseModel):
+    session_id: str
+    status: str = Field(..., description="completed | awaiting_approval | denied | error")
+    company: dict | None = None
+    kpis: dict | None = None
+    message: str | None = None
+    pending_approval: dict | None = Field(
+        None, description="Present when status=awaiting_approval; carries interrupt_id + summary"
+    )
+    steps: list[dict] = Field(default_factory=list)
+    took_ms: float = 0.0
+
+
+class KpiApproveRequest(BaseModel):
+    email: str = Field(..., min_length=1, description="User email — chat-memory session key")
+    session_id: str = Field(..., min_length=1, description="Session/thread to resume")
+    interrupt_id: str | None = Field(None, description="The pending interrupt id from the chat response")
+    decision: str = Field(..., description="approve | reject")
+    feedback: str | None = Field(None, description="Optional reviewer note, returned on reject")

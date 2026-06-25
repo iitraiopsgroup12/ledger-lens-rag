@@ -47,13 +47,34 @@ If the user query is ambiguous, explain the financial assumptions you are making
     ]
 )
 
+# Plain single-turn prompt for the KPI workflow's complete(system, user) seam.
+_COMPLETE_PROMPT = ChatPromptTemplate.from_messages(
+    [("system", "{system}"), ("human", "{user}")]
+)
+
+
+def _as_text(content) -> str:
+    """Coerce LangChain message content (str or list of blocks) to plain text."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, dict) and block.get("type", "text") == "text" and "text" in block:
+                parts.append(block["text"])
+        return "".join(parts)
+    return str(content)
+
 
 class OpenAIChatLLM(BaseLLM):
     """Grounded answer generation via OpenAI chat models."""
 
     def __init__(self, api_key: str, model: str, timeout: float = 3600) -> None:
         logger.info("Initializing OpenAIChatLLM with model %s (timeout=%ss)", model, timeout)
-        self._chain = _PROMPT | ChatOpenAI(api_key=api_key, model=model, timeout=timeout)
+        self._model = ChatOpenAI(api_key=api_key, model=model, timeout=timeout)
+        self._chain = _PROMPT | self._model
 
     def generate(self, question: str, context: list[Document]) -> str:
         context_text = "\n\n---\n\n".join(d.page_content for d in context)
@@ -61,18 +82,24 @@ class OpenAIChatLLM(BaseLLM):
         response = self._chain.invoke({"question": question, "context": context_text})
         return response.content
 
+    def complete(self, system: str, user: str) -> str:
+        logger.info("Completing via OpenAI (system=%d chars, user=%d chars)", len(system), len(user))
+        response = (_COMPLETE_PROMPT | self._model).invoke({"system": system, "user": user})
+        return _as_text(response.content)
+
 
 class AnthropicChatLLM(BaseLLM):
     """Grounded answer generation via Anthropic Claude models."""
 
     def __init__(self, api_key: str, model: str, timeout: float = 3600) -> None:
         logger.info("Initializing AnthropicChatLLM with model %s (timeout=%ss)", model, timeout)
-        self._chain = _PROMPT | ChatAnthropic(
+        self._model = ChatAnthropic(
             anthropic_api_key=api_key,
             model_name=model,
             thinking={"type": "adaptive"},
             timeout=timeout,
         )
+        self._chain = _PROMPT | self._model
 
     def generate(self, question: str, context: list[Document]) -> str:
         context_text = "\n\n---\n\n".join(d.page_content for d in context)
@@ -80,21 +107,32 @@ class AnthropicChatLLM(BaseLLM):
         response = self._chain.invoke({"question": question, "context": context_text})
         return response.content
 
+    def complete(self, system: str, user: str) -> str:
+        logger.info("Completing via Anthropic (system=%d chars, user=%d chars)", len(system), len(user))
+        response = (_COMPLETE_PROMPT | self._model).invoke({"system": system, "user": user})
+        return _as_text(response.content)
+
 
 class GoogleChatLLM(BaseLLM):
     """Grounded answer generation via Google Gemini models."""
 
     def __init__(self, api_key: str, model: str, timeout: float = 3600) -> None:
         logger.info("Initializing GoogleChatLLM with model %s (timeout=%ss)", model, timeout)
-        self._chain = _PROMPT | ChatGoogleGenerativeAI(
+        self._model = ChatGoogleGenerativeAI(
             google_api_key=api_key, model=model, timeout=timeout
         )
+        self._chain = _PROMPT | self._model
 
     def generate(self, question: str, context: list[Document]) -> str:
         context_text = "\n\n---\n\n".join(d.page_content for d in context)
         logger.info("Generating answer via Google from %d context doc(s)", len(context))
         response = self._chain.invoke({"question": question, "context": context_text})
         return response.content
+
+    def complete(self, system: str, user: str) -> str:
+        logger.info("Completing via Google (system=%d chars, user=%d chars)", len(system), len(user))
+        response = (_COMPLETE_PROMPT | self._model).invoke({"system": system, "user": user})
+        return _as_text(response.content)
 
 
 class HuggingFaceChatLLM(BaseLLM):
@@ -113,7 +151,8 @@ class HuggingFaceChatLLM(BaseLLM):
             timeout=timeout,
         )
 
-        self._chain = _PROMPT | ChatHuggingFace(llm=llm)
+        self._model = ChatHuggingFace(llm=llm)
+        self._chain = _PROMPT | self._model
 
     def generate(self, question: str, context: list[Document]) -> str:
         context_text = "\n\n---\n\n".join(d.page_content for d in context)
@@ -121,6 +160,11 @@ class HuggingFaceChatLLM(BaseLLM):
         response = self._chain.invoke({"question": question, "context": context_text})
         logger.info("Generated response from HuggingFace Response %s", response.model_dump_json())
         return response.content
+
+    def complete(self, system: str, user: str) -> str:
+        logger.info("Completing via HuggingFace (system=%d chars, user=%d chars)", len(system), len(user))
+        response = (_COMPLETE_PROMPT | self._model).invoke({"system": system, "user": user})
+        return _as_text(response.content)
 
 
 

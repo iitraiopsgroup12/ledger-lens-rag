@@ -48,3 +48,12 @@ class BaseLLM(ABC):
 
     @abstractmethod
     def generate(self, question: str, context: list[Document]) -> str: ...
+
+    @abstractmethod
+    def complete(self, system: str, user: str) -> str:
+        """Single-turn completion from an explicit system + user prompt.
+
+        Used by the KPI agentic workflow for classification, extraction, and
+        structured KPI JSON generation — distinct from RAG-grounded `generate`.
+        """
+        ...
