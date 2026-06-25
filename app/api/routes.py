@@ -250,28 +250,16 @@ async def kpi_chat(
     email: str = Form(..., min_length=1, description="User email — chat-memory session key"),
     symbol: str = Form(..., min_length=1, description="Company stock symbol to analyze"),
     message: str = Form(..., min_length=1, description="Natural-language KPI request"),
-    file: UploadFile | None = File(None, description="Optional extra document for added context"),
     session_id: str | None = Form(None, description="Optional parallel thread for this email"),
     service: KPIService = Depends(get_kpi_service),
 ) -> KpiChatResponse:
-    file_bytes: bytes | None = None
-    file_name: str | None = None
-    if file is not None:
-        file_name = file.filename or "upload"
-        get_parser(file_name)  # raises UnsupportedFileTypeError early, before reading
-        file_bytes = await file.read()
-        if not file_bytes:
-            raise EmptyFileError(file_name)
-
-    logger.info(
-        "POST /kpi/chat — email=%s symbol=%s session=%s file=%s", email, symbol, session_id, file_name
-    )
+    logger.info("POST /kpi/chat — email=%s symbol=%s session=%s", email, symbol, session_id)
 
     loop = asyncio.get_event_loop()
     try:
         result = await loop.run_in_executor(
             None,
-            partial(service.chat, email, symbol, message, file_bytes, file_name, session_id),
+            partial(service.chat, email, symbol, message, session_id=session_id),
         )
     except Exception as exc:
         if "openai" in str(exc).lower() or "connection" in str(exc).lower():

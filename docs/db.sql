@@ -196,34 +196,6 @@ ALTER TABLE public.financial_results OWNER TO postgres;
 GRANT ALL ON TABLE public.financial_results TO postgres;
 
 
--- public.integrated_results definition
-
--- Drop table
-
--- DROP TABLE public.integrated_results;
-
-CREATE TABLE public.integrated_results ( id bigserial NOT NULL, seq_id varchar NULL, symbol varchar NULL, cm_name varchar NULL, sm_name varchar NULL, audited varchar NULL, consolidated varchar NULL, "type" varchar NULL, type_sub varchar NULL, qe_date varchar NULL, broadcast_date varchar NULL, creation_date varchar NULL, revised_date varchar NULL, revision_remark varchar NULL, diff varchar NULL, ixbrl varchar NULL, ixbrl_file_size varchar NULL, xbrl varchar NULL, xbrl_file_size varchar NULL, pdf_attach varchar NULL, att_file_size varchar NULL, created_at timestamp NULL, CONSTRAINT integrated_results_pkey PRIMARY KEY (id), CONSTRAINT integrated_results_seq_id_key UNIQUE (seq_id));
-
--- Permissions
-
-ALTER TABLE public.integrated_results OWNER TO postgres;
-GRANT ALL ON TABLE public.integrated_results TO postgres;
-
-
--- public.nsc_announcements definition
-
--- Drop table
-
--- DROP TABLE public.nsc_announcements;
-
-CREATE TABLE public.nsc_announcements ( id bigserial NOT NULL, seq_id varchar NULL, symbol varchar NULL, sm_name varchar NULL, sm_isin varchar NULL, sm_industry varchar NULL, description varchar NULL, attchmnt_text varchar NULL, attchmnt_file varchar NULL, att_file_size varchar NULL, file_size varchar NULL, has_xbrl bool NULL, an_dt varchar NULL, exchdisstime varchar NULL, dt varchar NULL, sort_date varchar NULL, difference varchar NULL, bflag varchar NULL, csv_name varchar NULL, old_new varchar NULL, orgid varchar NULL, created_at timestamp NULL, CONSTRAINT nsc_announcements_pkey PRIMARY KEY (id), CONSTRAINT nsc_announcements_seq_id_key UNIQUE (seq_id));
-
--- Permissions
-
-ALTER TABLE public.nsc_announcements OWNER TO postgres;
-GRANT ALL ON TABLE public.nsc_announcements TO postgres;
-
-
 -- public.users definition
 
 -- Drop table
@@ -272,12 +244,40 @@ GRANT ALL ON TABLE public.annual_reports TO postgres;
 
 -- DROP TABLE public.documents;
 
-CREATE TABLE public.documents ( id bigserial NOT NULL, company_id int8 NULL, document_type varchar NULL, document_title varchar NULL, report_year varchar NULL, s3_key varchar NULL, "source" varchar NULL, upload_date timestamp NULL, processing_status varchar NULL, CONSTRAINT documents_pkey PRIMARY KEY (id), CONSTRAINT documents_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE);
+CREATE TABLE public.documents ( id bigserial NOT NULL, company_id int8 NULL, document_type varchar NULL, document_title varchar NULL, report_year varchar NULL, file_name varchar NULL, s3_key varchar NULL, "source" varchar NULL, upload_date timestamp NULL, processing_status varchar NULL, CONSTRAINT documents_pkey PRIMARY KEY (id), CONSTRAINT documents_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE);
 
 -- Permissions
 
 ALTER TABLE public.documents OWNER TO postgres;
 GRANT ALL ON TABLE public.documents TO postgres;
+
+
+-- public.integrated_results definition
+
+-- Drop table
+
+-- DROP TABLE public.integrated_results;
+
+CREATE TABLE public.integrated_results ( id bigserial NOT NULL, company_id int8 NULL, seq_id varchar NULL, symbol varchar NULL, cm_name varchar NULL, sm_name varchar NULL, audited varchar NULL, consolidated varchar NULL, "type" varchar NULL, type_sub varchar NULL, qe_date varchar NULL, broadcast_date varchar NULL, creation_date varchar NULL, revised_date varchar NULL, revision_remark varchar NULL, diff varchar NULL, ixbrl varchar NULL, ixbrl_file_size varchar NULL, xbrl varchar NULL, xbrl_file_size varchar NULL, pdf_attach varchar NULL, att_file_size varchar NULL, created_at timestamp NULL, CONSTRAINT integrated_results_pkey PRIMARY KEY (id), CONSTRAINT integrated_results_seq_id_key UNIQUE (seq_id), CONSTRAINT integrated_results_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE);
+
+-- Permissions
+
+ALTER TABLE public.integrated_results OWNER TO postgres;
+GRANT ALL ON TABLE public.integrated_results TO postgres;
+
+
+-- public.nsc_announcements definition
+
+-- Drop table
+
+-- DROP TABLE public.nsc_announcements;
+
+CREATE TABLE public.nsc_announcements ( id bigserial NOT NULL, company_id int8 NULL, seq_id varchar NULL, symbol varchar NULL, sm_name varchar NULL, sm_isin varchar NULL, sm_industry varchar NULL, description varchar NULL, attchmnt_text varchar NULL, attchmnt_file varchar NULL, att_file_size varchar NULL, file_size varchar NULL, has_xbrl bool NULL, an_dt varchar NULL, exchdisstime varchar NULL, dt varchar NULL, sort_date varchar NULL, difference varchar NULL, bflag varchar NULL, csv_name varchar NULL, old_new varchar NULL, orgid varchar NULL, created_at timestamp NULL, CONSTRAINT nsc_announcements_pkey PRIMARY KEY (id), CONSTRAINT nsc_announcements_seq_id_key UNIQUE (seq_id), CONSTRAINT nsc_announcements_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE);
+
+-- Permissions
+
+ALTER TABLE public.nsc_announcements OWNER TO postgres;
+GRANT ALL ON TABLE public.nsc_announcements TO postgres;
 
 
 -- public.update_logs definition

@@ -135,16 +135,24 @@ class KpiRepository:
     def _documents(self, conn, company_id: int) -> list[DocumentRef]:
         sql = text(
             """
-            SELECT id, company_id, document_type, document_title, report_year,
-                   s3_key, source, processing_status, upload_date
+            SELECT id, company_id, document_type, document_title, report_year, file_name, s3_key, source, processing_status, upload_date
             FROM documents
-            WHERE company_id = :company_id
+            WHERE company_id = :company_id AND document_type = 'annual_report'
             ORDER BY upload_date DESC NULLS LAST, id DESC
             LIMIT 50
             """
         )
         out: list[DocumentRef] = []
         for r in conn.execute(sql, {"company_id": company_id}).mappings():
+            # Diagnostic: shows whether file_name is even a column in the result
+            # (code/schema issue) vs present-but-NULL (data issue).
+            logger.info(
+                "[repo:_documents] row id=%s keys=%s file_name=%r s3_key=%r",
+                r.get("id"),
+                list(r.keys()),
+                r.get("file_name"),
+                r.get("s3_key"),
+            )
             out.append(
                 DocumentRef(
                     source_table="documents",
@@ -154,7 +162,9 @@ class KpiRepository:
                     title=r["document_title"],
                     year=str(r["report_year"]) if r["report_year"] is not None else None,
                     storage_id=r["s3_key"],
-                    filename=r["s3_key"],
+                    # file_name carries the real extension used to pick a parser;
+                    # s3_key (e.g. "file://<id>") has none, so fall back to it.
+                    filename=r.get("file_name") or r["s3_key"],
                     extra={
                         "source": r["source"],
                         "processing_status": r["processing_status"],

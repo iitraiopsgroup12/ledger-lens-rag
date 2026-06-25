@@ -175,6 +175,7 @@ _REGISTRY: dict[str, BaseParser] = {
 
 
 def get_parser(filename: str) -> BaseParser:
+    logger.info("File name to be parsed: %s", filename)
     ext = Path(filename).suffix.lower()
     if ext not in _REGISTRY:
         logger.warning("Unsupported file type %r for file %s", ext, filename)

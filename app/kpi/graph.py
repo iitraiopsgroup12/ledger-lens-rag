@@ -63,10 +63,9 @@ class KpiState(TypedDict, total=False):
 
     candidate_documents: list[dict]
     selected_document: dict | None
-    storage_id: str | None
     bucket: str | None
-    document_bytes: bytes | None
-    document_filename: str | None
+    # Retrieved file blobs (all forwarded documents): [{"filename", "bytes"}].
+    document_blobs: list[dict] | None
     document_text: str | None
 
     user_file_bytes: bytes | None
@@ -237,85 +236,80 @@ class KpiNodes:
             company.get("symbol"),
         )
         refs = self.repository.find_company_documents(company["id"], company.get("symbol"))
-        ranked = self._rank_documents(refs, state["message"])
-        logger.info(
-            "[kpi:fetch_documents] %d candidate(s) found; ranked %d",
-            len(refs),
-            len(ranked),
-        )
+        # Ranking disabled — forward ALL documents to the next state as-is.
+        # ranked = self._rank_documents(refs, state["message"])
+        candidates = [asdict(r) for r in refs]
         out: dict[str, Any] = {
-            "candidate_documents": [asdict(r) for r in ranked],
+            "candidate_documents": candidates,
+            "bucket": company.get("symbol"),
         }
-        if ranked:
-            best = ranked[0]
-            out["selected_document"] = asdict(best)
-            out["storage_id"] = best.storage_id
-            out["bucket"] = company.get("symbol")
-            out["document_filename"] = best.filename
+        if candidates:
+            # selected_document is just the representative shown in the HITL summary;
+            # retrieval/parsing below consume every candidate.
+            out["selected_document"] = candidates[0]
             logger.info(
-                "[kpi:fetch_documents] DONE selected %s #%s (year=%s) storage_id=%r filename=%r",
-                best.source_table,
-                best.document_id,
-                best.year,
-                best.storage_id,
-                best.filename,
+                "[kpi:fetch_documents] DONE forwarding all %d document(s) (ranking disabled)",
+                len(candidates),
             )
             out["steps"] = [
-                _step(
-                    "fetch_documents",
-                    f"Selected {best.source_table} #{best.document_id} "
-                    f"({best.title or 'untitled'}, year={best.year})"
-                    f" from {len(refs)} candidate(s)",
-                )
+                _step("fetch_documents", f"Forwarding {len(candidates)} document(s) (ranking disabled)")
             ]
         else:
             out["selected_document"] = None
-            out["storage_id"] = None
             logger.warning("[kpi:fetch_documents] DONE no candidate documents for company_id=%s", company["id"])
             out["steps"] = [_step("fetch_documents", "No candidate documents found for company")]
         return out
 
-    def _rank_documents(self, refs: list[DocumentRef], message: str) -> list[DocumentRef]:
-        msg = (message or "").lower()
-        years = re.findall(r"(?:19|20)\d{2}", message or "")
-        wants_consolidated = "consolidated" in msg
-        wants_audited = "audited" in msg
-
-        def score(ref: DocumentRef) -> tuple:
-            s = 0
-            if ref.storage_id:  # only pointers we can actually retrieve are useful
-                s += 5
-            s += _TYPE_PRIORITY.get(ref.document_type or "", 0)
-            if ref.year and any(y in str(ref.year) for y in years):
-                s += 4
-            extra = ref.extra or {}
-            if wants_consolidated and str(extra.get("consolidated", "")).lower() in {"true", "yes", "1", "consolidated"}:
-                s += 2
-            if wants_audited and str(extra.get("audited", "")).lower() in {"true", "yes", "1", "audited"}:
-                s += 2
-            # Tie-break: most recent year first.
-            year_key = ref.year or ""
-            return (s, year_key)
-
-        return sorted(refs, key=score, reverse=True)
+    # Document ranking is disabled: fetch_documents now forwards all candidate
+    # documents to the next state unranked. Kept here (commented) for easy re-enable.
+    # def _rank_documents(self, refs: list[DocumentRef], message: str) -> list[DocumentRef]:
+    #     msg = (message or "").lower()
+    #     years = re.findall(r"(?:19|20)\d{2}", message or "")
+    #     wants_consolidated = "consolidated" in msg
+    #     wants_audited = "audited" in msg
+    #
+    #     def score(ref: DocumentRef) -> tuple:
+    #         s = 0
+    #         if ref.storage_id:  # only pointers we can actually retrieve are useful
+    #             s += 5
+    #         s += _TYPE_PRIORITY.get(ref.document_type or "", 0)
+    #         if ref.year and any(y in str(ref.year) for y in years):
+    #             s += 4
+    #         extra = ref.extra or {}
+    #         if wants_consolidated and str(extra.get("consolidated", "")).lower() in {"true", "yes", "1", "consolidated"}:
+    #             s += 2
+    #         if wants_audited and str(extra.get("audited", "")).lower() in {"true", "yes", "1", "audited"}:
+    #             s += 2
+    #         # Tie-break: most recent year first.
+    #         year_key = ref.year or ""
+    #         return (s, year_key)
+    #
+    #     return sorted(refs, key=score, reverse=True)
 
     # --- 5. retrieve_document ----------------------------------------------
 
     def retrieve_document(self, state: KpiState) -> dict:
-        storage_id = state.get("storage_id")
+        candidates = state.get("candidate_documents") or []
         bucket = state.get("bucket")
-        logger.info("[kpi:retrieve_document] START storage_id=%r bucket=%r", storage_id, bucket)
-        if not storage_id:
-            logger.info("[kpi:retrieve_document] DONE no storage pointer; continuing with available context")
-            return {"steps": [_step("retrieve_document", "No storage pointer; continuing with available context")]}
-        data = self._retrieve(storage_id, bucket)
-        if data is None:
-            logger.warning("[kpi:retrieve_document] DONE pointer %r not retrievable; continuing", storage_id)
-            return {"steps": [_step("retrieve_document", f"Storage pointer {storage_id!r} not found; continuing")]}
-        logger.info("[kpi:retrieve_document] DONE retrieved %d bytes for %r", len(data), storage_id)
+        logger.info("[kpi:retrieve_document] START %d candidate(s) bucket=%r", len(candidates), bucket)
+        blobs: list[dict] = []
+        for doc in candidates:
+            storage_id = doc.get("storage_id")
+            if not storage_id:
+                logger.info("[kpi:retrieve_document] skip doc #%s — no storage pointer", doc.get("document_id"))
+                continue
+            data = self._retrieve(storage_id, bucket)
+            if data is None:
+                logger.warning("[kpi:retrieve_document] pointer %r not retrievable; skipping", storage_id)
+                continue
+            blobs.append({"filename": doc.get("filename"), "bytes": data})
+            logger.info("[kpi:retrieve_document] retrieved %d bytes for %r filename %s ", len(data), storage_id, doc.get("filename") )
+        logger.info(
+            "[kpi:retrieve_document] DONE retrieved %d of %d document(s)", len(blobs), len(candidates)
+        )
         return {
-            "document_bytes": data,
-            "steps": [_step("retrieve_document", f"Retrieved {len(data)} bytes for {storage_id!r}")],
+            "document_blobs": blobs,
+            "steps": [_step("retrieve_document", f"Retrieved {len(blobs)} of {len(candidates)} document(s)")],
         }
 
     def _retrieve(self, storage_id: str, bucket: str | None) -> bytes | None:
@@ -335,16 +329,22 @@ class KpiNodes:
     # --- 6. parse_document --------------------------------------------------
 
     def parse_document(self, state: KpiState) -> dict:
+        blobs = state.get("document_blobs") or []
         logger.info(
-            "[kpi:parse_document] START filing=%r upload=%r",
-            state.get("document_filename"),
-            state.get("user_file_name"),
+            "[kpi:parse_document] START %d filing(s)",
+            len(blobs)
         )
-        document_text = self._parse(state.get("document_bytes"), state.get("document_filename"))
+        # Parse every forwarded document and concatenate, headed by its filename.
+        sections: list[str] = []
+        for blob in blobs:
+            text = self._parse(blob.get("bytes"), blob.get("filename"))
+            if text:
+                sections.append(f"### {blob.get('filename') or 'document'}\n{text}")
+        document_text = "\n\n".join(sections) if sections else None
         user_file_text = self._parse(state.get("user_file_bytes"), state.get("user_file_name"))
         summary_bits = []
         if document_text:
-            summary_bits.append(f"filing={len(document_text)} chars")
+            summary_bits.append(f"{len(sections)} filing(s)={len(document_text)} chars")
         if user_file_text:
             summary_bits.append(f"upload={len(user_file_text)} chars")
         summary = "Parsed " + (", ".join(summary_bits) if summary_bits else "no document text")
@@ -352,7 +352,7 @@ class KpiNodes:
         return {
             "document_text": document_text,
             "user_file_text": user_file_text,
-            "document_bytes": None,  # drop bytes from persisted state
+            "document_blobs": None,  # drop bytes from persisted state
             "user_file_bytes": None,
             "steps": [_step("parse_document", summary)],
         }
