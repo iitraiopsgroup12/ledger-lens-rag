@@ -143,6 +143,7 @@ def build_kpi_service() -> KPIService:
         prompt_template=prompt_template,
         require_approval=settings.kpi_require_approval,
         admin_bypass=settings.kpi_admin_bypass,
+        max_document_chars=settings.kpi_max_document_chars,
     )
     graph = build_kpi_graph(nodes, MemorySaver())
     logger.info("KPI service assembled successfully")

@@ -1140,6 +1140,7 @@ dependencies = [
     { name = "openpyxl" },
     { name = "pandas" },
     { name = "psycopg", extra = ["binary"] },
+    { name = "py-xbrl" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pypdf" },
@@ -1172,6 +1173,7 @@ requires-dist = [
     { name = "openpyxl", specifier = ">=3.1.0" },
     { name = "pandas", specifier = ">=2.0.0" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.1.0" },
+    { name = "py-xbrl", specifier = ">=3.0.3" },
     { name = "pydantic", specifier = ">=2.7.0" },
     { name = "pydantic-settings", specifier = ">=2.3.0" },
     { name = "pypdf", specifier = ">=4.0.0" },
@@ -1776,6 +1778,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/90/82/7a23d26039827ecd4ebe93905651029ddd307c5182ad59296dfb6f67b528/psycopg_pool-3.3.1.tar.gz", hash = "sha256:b10b10b7a175d5cc1592147dc5b7eec8a9e0834eb3ed2c4a92c858e2f51eb63c", size = 31661, upload-time = "2026-05-01T23:31:59.809Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/37/ed/89c2c620af0e1660354cd8aabf9f5b21f911597ce22acb37c805d6c86bc8/psycopg_pool-3.3.1-py3-none-any.whl", hash = "sha256:2af5b432941c4c9ad5c87b3fa410aec910ec8f7c122855897983a06c45f2e4b5", size = 40023, upload-time = "2026-05-01T23:31:53.136Z" },
+]
+
+[[package]]
+name = "py-xbrl"
+version = "3.0.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/44/82/423a91bbf7fdd7471c497d67223c0135f97b03c5ae9a2ddec254187a3f8f/py_xbrl-3.0.3.tar.gz", hash = "sha256:fe599a49b15cb8bfcb8b60c04a59934e4757f3fc59fd1b09357afb1574335074", size = 59378, upload-time = "2026-03-08T16:55:51.249Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d1/68/6a8b0d17cfda1430780cd2a03b47509fef31f688f532c642ea09e6a8eac6/py_xbrl-3.0.3-py3-none-any.whl", hash = "sha256:6eddaf493f9c012bbe4b28b0e1d19891a367cf45a3e8af859ceb579169120392", size = 56405, upload-time = "2026-03-08T16:55:50.02Z" },
 ]
 
 [[package]]

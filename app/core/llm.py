@@ -163,8 +163,15 @@ class HuggingFaceChatLLM(BaseLLM):
 
     def complete(self, system: str, user: str) -> str:
         logger.info("Completing via HuggingFace (system=%d chars, user=%d chars)", len(system), len(user))
-        response = (_COMPLETE_PROMPT | self._model).invoke({"system": system, "user": user})
-        return _as_text(response.content)
+        # Stream the generation so the HTTP connection keeps receiving tokens.
+        # A non-streaming request makes the HF router wait for the full response
+        # and return 504 Gateway Time-out on slow/long generations; streaming
+        # keeps the connection alive and sidesteps that gateway limit.
+        chain = _COMPLETE_PROMPT | self._model
+        parts: list[str] = []
+        for chunk in chain.stream({"system": system, "user": user}):
+            parts.append(_as_text(getattr(chunk, "content", "")))
+        return "".join(parts)
 
 
 

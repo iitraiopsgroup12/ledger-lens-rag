@@ -101,6 +101,10 @@ class KpiNodes:
     prompt_template: str
     require_approval: bool = True
     admin_bypass: bool = False
+    # Cap the parsed document text injected into the LLM prompt. Annual reports
+    # are huge; without a budget the request can exceed the model/provider token
+    # limit and the LLM API rejects it (e.g. HF 400 Bad Request). 0 = unbounded.
+    max_document_chars: int = 24000
 
     # --- 1. finance_guardrail (DOMAIN GUARDRAIL) ----------------------------
 
@@ -341,19 +345,14 @@ class KpiNodes:
             if text:
                 sections.append(f"### {blob.get('filename') or 'document'}\n{text}")
         document_text = "\n\n".join(sections) if sections else None
-        user_file_text = self._parse(state.get("user_file_bytes"), state.get("user_file_name"))
         summary_bits = []
         if document_text:
             summary_bits.append(f"{len(sections)} filing(s)={len(document_text)} chars")
-        if user_file_text:
-            summary_bits.append(f"upload={len(user_file_text)} chars")
         summary = "Parsed " + (", ".join(summary_bits) if summary_bits else "no document text")
         logger.info("[kpi:parse_document] DONE %s", summary)
         return {
             "document_text": document_text,
-            "user_file_text": user_file_text,
             "document_blobs": None,  # drop bytes from persisted state
-            "user_file_bytes": None,
             "steps": [_step("parse_document", summary)],
         }
 
@@ -409,23 +408,34 @@ class KpiNodes:
             "## KPI Registry (allow-list — compute ONLY these KPIs)",
             registry_block,
         ]
-        if state.get("document_text"):
-            parts += ["## Company Filing (source of truth for values)", state["document_text"]]
-        if state.get("user_file_text"):
-            parts += ["## Additional User-Provided Document", state["user_file_text"]]
+        document_text = self._cap(state.get("document_text"))
+        if document_text:
+            parts += ["## Company Filing (source of truth for values)", document_text]
+
         parts += ["## User Request", state["message"]]
         kpi_prompt = "\n\n".join(parts)
         logger.info(
             "[kpi:build_prompt] DONE prompt=%d chars (filing=%s, upload=%s, %d categor(ies))",
             len(kpi_prompt),
-            bool(state.get("document_text")),
-            bool(state.get("user_file_text")),
+            bool(document_text),
             len(categories),
         )
         return {
             "kpi_prompt": kpi_prompt,
             "steps": [_step("build_prompt", f"Built prompt ({len(kpi_prompt)} chars)")],
         }
+
+    def _cap(self, text: str | None) -> str | None:
+        """Truncate document text to the configured budget to keep the prompt
+        within the LLM/provider token limit."""
+        if not text or self.max_document_chars <= 0 or len(text) <= self.max_document_chars:
+            return text
+        logger.warning(
+            "[kpi:build_prompt] document text %d chars exceeds budget %d — truncating",
+            len(text),
+            self.max_document_chars,
+        )
+        return text[: self.max_document_chars] + "\n\n[...truncated...]"
 
     # --- 9. human_approval (HITL) ------------------------------------------
 
@@ -477,6 +487,7 @@ class KpiNodes:
     def generate_kpis(self, state: KpiState) -> dict:
         prompt = state.get("kpi_prompt") or ""
         logger.info("[kpi:generate_kpis] START calling LLM (prompt=%d chars)", len(prompt))
+        logger.info("Generated Prompts : " + str(prompt) )
         try:
             raw = self.llm.complete(self.prompt_template, prompt)
         except Exception as exc:  # noqa: BLE001 — surfaced as a clean error status
@@ -486,7 +497,7 @@ class KpiNodes:
                 "message_out": f"KPI generation failed: {exc}",
                 "steps": [_step("generate_kpis", "LLM call failed")],
             }
-        logger.debug("[kpi:generate_kpis] LLM raw response (%d chars): %.500s", len(raw or ""), raw)
+        logger.info("[kpi:generate_kpis] LLM raw response (%d chars): %.500s", len(raw or ""), raw)
         kpis = _parse_json(raw)
         if kpis is None:
             logger.warning("[kpi:generate_kpis] DONE unparseable JSON from model")

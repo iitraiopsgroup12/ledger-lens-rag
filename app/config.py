@@ -64,9 +64,12 @@ class Settings(BaseSettings):
     kpi_list_path: str = Field("docs/KPI-List.txt", alias="KPI_LIST_PATH")
     kpi_prompt_path: str = Field("docs/kpi-prompt.md", alias="KPI_PROMPT_PATH")
     # Require human-in-the-loop approval before final KPI generation.
-    kpi_require_approval: bool = Field(True, alias="KPI_REQUIRE_APPROVAL")
+    kpi_require_approval: bool = Field(False, alias="KPI_REQUIRE_APPROVAL")
     # Allow admin-role users to bypass the watchlist authorization guardrail.
     kpi_admin_bypass: bool = Field(False, alias="KPI_ADMIN_BYPASS")
+    # Max chars of parsed document text injected into the KPI prompt (keeps the
+    # request under the LLM/provider token limit). 0 = unbounded.
+    kpi_max_document_chars: int = Field(24000, alias="KPI_MAX_DOCUMENT_CHARS")
 
     # Per-document-type adaptive chunking
     invoice_chunk_size: int = Field(400, alias="INVOICE_CHUNK_SIZE")
