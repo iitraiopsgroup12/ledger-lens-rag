@@ -52,7 +52,7 @@ class KpiChatResponse(BaseModel):
     session_id: str
     status: str = Field(..., description="completed | awaiting_approval | denied | error")
     company: dict | None = None
-    kpis: dict | None = None
+    kpis: str | None = Field(None, description="KPI analysis rendered as Markdown")
     message: str | None = None
     pending_approval: dict | None = Field(
         None, description="Present when status=awaiting_approval; carries interrupt_id + summary"

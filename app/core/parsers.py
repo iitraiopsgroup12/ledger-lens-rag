@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import csv
 import io
 import logging
+from html.parser import HTMLParser
 from pathlib import Path
 
 from app.exceptions import EmptyFileError, FileParseError, UnsupportedFileTypeError
@@ -25,6 +26,46 @@ class TextParser(BaseParser):
             raise EmptyFileError(filename)
         return result
 
+class PDFParserExtended(BaseParser):
+    """Layout-aware PDF parser for financial documents.
+
+    Unlike :class:`PDFParser`, which uses pypdf's default text extraction (it
+    reads characters in content-stream order and tends to collapse multi-column
+    tables into an unreadable jumble), this parser uses pypdf's layout mode so
+    columnar data — balance sheets, P&L statements, schedules — keeps its
+    spatial alignment. That alignment is what lets the downstream LLM tell one
+    column from the next. Pages are emitted with markers so retrieved chunks
+    can be traced back to a page, and each page falls back to plain extraction
+    if layout mode fails on it.
+    """
+
+    def parse(self, data: bytes, filename: str) -> str:
+        try:
+            from pypdf import PdfReader
+
+            reader = PdfReader(io.BytesIO(data))
+            pages: list[str] = []
+            for index, page in enumerate(reader.pages, start=1):
+                extracted = self._extract_page(page)
+                if extracted:
+                    pages.append(f"[Page {index}]\n{extracted}")
+            result = "\n\n".join(pages).strip()
+            logger.info("PDG Text Parsed %s", result)
+        except Exception as exc:
+            logger.warning("Failed to parse PDF %s: %s", filename, exc)
+            raise FileParseError(filename, str(exc)) from exc
+        if not result:
+            raise EmptyFileError(filename)
+        return result
+
+    @staticmethod
+    def _extract_page(page) -> str:
+        """Extract one page, preferring layout mode and falling back to plain."""
+        try:
+            text = page.extract_text(extraction_mode="layout")
+        except Exception:  # noqa: BLE001 — layout mode unsupported/failed for this page
+            text = page.extract_text()
+        return (text or "").strip()
 
 class PDFParser(BaseParser):
     def parse(self, data: bytes, filename: str) -> str:
@@ -289,6 +330,81 @@ class XmlParser(BaseParser):
         return "\n".join(lines).strip()
 
 
+class _HtmlTextExtractor(HTMLParser):
+    """Collects visible text from HTML, rendering tables as tab-separated rows.
+
+    Financial filings published as HTML lean heavily on tables, so cell and row
+    boundaries are preserved (cells joined by tabs, rows by newlines) to keep
+    columnar data legible for the downstream LLM. ``<script>``/``<style>`` and
+    other non-visible content is dropped.
+    """
+
+    _SKIP_TAGS = {"script", "style", "head", "meta", "link", "title"}
+    _BLOCK_TAGS = {"p", "div", "br", "li", "h1", "h2", "h3", "h4", "h5", "h6"}
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self._parts: list[str] = []
+        self._skip_depth = 0
+        self._cell_buffer: list[str] = []
+        self._in_cell = False
+
+    def handle_starttag(self, tag: str, attrs) -> None:
+        if tag in self._SKIP_TAGS:
+            self._skip_depth += 1
+        elif tag in ("td", "th"):
+            self._in_cell = True
+            self._cell_buffer = []
+        elif tag == "tr":
+            self._parts.append("\n")
+        elif tag in self._BLOCK_TAGS:
+            self._parts.append("\n")
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in self._SKIP_TAGS:
+            self._skip_depth = max(0, self._skip_depth - 1)
+        elif tag in ("td", "th"):
+            self._parts.append(" ".join(self._cell_buffer).strip())
+            self._parts.append("\t")
+            self._in_cell = False
+            self._cell_buffer = []
+
+    def handle_data(self, data: str) -> None:
+        if self._skip_depth:
+            return
+        text = data.strip()
+        if not text:
+            return
+        if self._in_cell:
+            self._cell_buffer.append(text)
+        else:
+            self._parts.append(text + " ")
+
+    def get_text(self) -> str:
+        lines = "".join(self._parts).splitlines()
+        # Trim trailing tab separators and drop blank lines.
+        cleaned = [line.strip().rstrip("\t").strip() for line in lines]
+        return "\n".join(line for line in cleaned if line)
+
+
+class HtmlParser(BaseParser):
+    def parse(self, data: bytes, filename: str) -> str:
+        try:
+            try:
+                text = data.decode("utf-8")
+            except UnicodeDecodeError:
+                text = data.decode("latin-1")
+            extractor = _HtmlTextExtractor()
+            extractor.feed(text)
+            result = extractor.get_text().strip()
+        except Exception as exc:
+            logger.warning("Failed to parse HTML %s: %s", filename, exc)
+            raise FileParseError(filename, str(exc)) from exc
+        if not result:
+            raise EmptyFileError(filename)
+        return result
+
+
 _REGISTRY: dict[str, BaseParser] = {
     ".pdf": PDFParser(),
     ".docx": DocxParser(),
@@ -299,6 +415,8 @@ _REGISTRY: dict[str, BaseParser] = {
     ".md": TextParser(),
     ".xml": XmlParser(),
     ".xbrl": XmlParser(),
+    ".html": HtmlParser(),
+    ".htm": HtmlParser(),
 }
 
 

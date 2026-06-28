@@ -23,7 +23,7 @@ class KpiResult:
     session_id: str
     status: str  # completed | awaiting_approval | denied | error
     company: dict | None = None
-    kpis: dict | None = None
+    kpis: str | None = None  # KPI analysis rendered as Markdown
     message: str | None = None
     pending_approval: dict | None = None
     steps: list[dict] = field(default_factory=list)

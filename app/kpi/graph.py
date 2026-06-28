@@ -75,7 +75,8 @@ class KpiState(TypedDict, total=False):
     requested_categories: dict
     requested_kpis: list[str]
     kpi_prompt: str | None
-    kpis: dict | None
+    # Final KPI report rendered as Markdown (the model emits Markdown, not JSON).
+    kpis: str | None
 
     status: str
     denial_reason: str | None
@@ -405,7 +406,7 @@ class KpiNodes:
         categories = state.get("requested_categories") or self.registry.categories
         registry_block = self.registry.as_prompt_block(categories)
         parts = [
-            "## KPI Registry (allow-list — compute ONLY these KPIs)",
+            "## KPI Registry (allow-list — compute ONLY these KPIs with respective KPI Unit of measurements)",
             registry_block,
         ]
         document_text = self._cap(state.get("document_text"))
@@ -415,7 +416,7 @@ class KpiNodes:
         parts += ["## User Request", state["message"]]
         kpi_prompt = "\n\n".join(parts)
         logger.info(
-            "[kpi:build_prompt] DONE prompt=%d chars (filing=%s, upload=%s, %d categor(ies))",
+            "[kpi:build_prompt] DONE prompt=%d chars (filing=%s, %d categor(ies))",
             len(kpi_prompt),
             bool(document_text),
             len(categories),
@@ -497,21 +498,39 @@ class KpiNodes:
                 "message_out": f"KPI generation failed: {exc}",
                 "steps": [_step("generate_kpis", "LLM call failed")],
             }
+        logger.info("[kpi:generate_kpis] Generated raw response : " + str(raw) )
         logger.info("[kpi:generate_kpis] LLM raw response (%d chars): %.500s", len(raw or ""), raw)
-        kpis = _parse_json(raw)
-        if kpis is None:
-            logger.warning("[kpi:generate_kpis] DONE unparseable JSON from model")
+        kpis = _clean_markdown(raw)
+        if not kpis:
+            # Non-empty raw that cleans to nothing means the model emitted only a
+            # (likely truncated/unclosed) <think> block — it ran out of output
+            # budget before producing the report.
+            truncated_reasoning = bool(raw and raw.strip())
+            if truncated_reasoning:
+                logger.warning(
+                    "[kpi:generate_kpis] DONE response was reasoning-only (%d chars) — "
+                    "likely hit the output token limit before emitting the report",
+                    len(raw),
+                )
+                message = (
+                    "The model ran out of output space while reasoning and did not "
+                    "produce a report. Try a narrower request or raise the model's "
+                    "output token limit."
+                )
+            else:
+                logger.warning("[kpi:generate_kpis] DONE empty response from model")
+                message = "The model returned an empty KPI report."
             return {
                 "status": "error",
-                "message_out": "The model returned invalid KPI JSON.",
-                "steps": [_step("generate_kpis", "Unparseable JSON from model")],
+                "message_out": message,
+                "steps": [_step("generate_kpis", "Model produced no report")],
             }
-        logger.info("[kpi:generate_kpis] DONE generated valid KPI JSON (%d top-level key(s))", len(kpis))
+        logger.info("[kpi:generate_kpis] DONE generated KPI Markdown report (%d chars)", len(kpis))
         return {
             "kpis": kpis,
             "status": "completed",
             "message_out": "KPI analysis complete.",
-            "steps": [_step("generate_kpis", "Generated and validated KPI JSON")],
+            "steps": [_step("generate_kpis", "Generated KPI Markdown report")],
         }
 
     # --- 11. persist --------------------------------------------------------
@@ -534,6 +553,26 @@ class KpiNodes:
         }
 
 
+def _clean_markdown(raw: str) -> str | None:
+    """Normalize an LLM response into a clean Markdown report string.
+
+    The model is instructed to emit Markdown only, but reasoning models prefix a
+    `<think>...</think>` block and some wrap the whole answer in a ```markdown
+    code fence. Strip both so the response renders as plain Markdown.
+    """
+    if not raw:
+        return None
+    text = raw.strip()
+    # Drop reasoning blocks (closed or trailing-unclosed).
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+    text = re.sub(r"^<think>.*$", "", text, flags=re.DOTALL).strip()
+    # Unwrap a single outer ```markdown ... ``` / ``` ... ``` fence if present.
+    fence = re.match(r"^```(?:markdown|md)?\s*(.*?)\s*```$", text, re.DOTALL)
+    if fence:
+        text = fence.group(1).strip()
+    return text or None
+
+
 def _parse_json(raw: str) -> dict | None:
     """Best-effort extraction of a JSON object from an LLM response.
 
@@ -543,6 +582,10 @@ def _parse_json(raw: str) -> dict | None:
     if not raw:
         return None
     text = raw.strip()
+    # Reasoning models emit a <think>...</think> block before the JSON. Drop it
+    # (closed or trailing-unclosed) so its prose/braces don't corrupt extraction.
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+    text = re.sub(r"^<think>.*$", "", text, flags=re.DOTALL).strip()
     # Strip ```json ... ``` fences if the model added them.
     fence = re.match(r"^```(?:json)?\s*(.*?)\s*```$", text, re.DOTALL)
     if fence:

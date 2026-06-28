@@ -137,7 +137,7 @@ class KpiRepository:
             """
             SELECT id, company_id, document_type, document_title, report_year, file_name, s3_key, source, processing_status, upload_date
             FROM documents
-            WHERE company_id = :company_id AND document_type = 'annual_report'
+            WHERE company_id = :company_id AND document_type = 'analyst_report'
             ORDER BY upload_date DESC NULLS LAST, id DESC
             LIMIT 50
             """

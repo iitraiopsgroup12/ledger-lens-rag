@@ -10,7 +10,7 @@ You are provided with:
 4. Query Mapping
 5. KPI Documentation
 
-Your objective is to extract financial statement data and generate a complete KPI JSON response.
+Your objective is to extract financial statement data and generate a complete KPI report formatted as clean, well-structured Markdown.
 
 ## General Rules
 
@@ -36,12 +36,12 @@ Your objective is to extract financial statement data and generate a complete KP
 20. Never create custom KPIs.
 21. Never omit any KPI from the KPI Registry.
 22. Never omit any Financial Field from the Financial Fields Registry.
-23. Return valid JSON only.
-24. Do not return explanations.
-25. Do not return reasoning.
-26. Do not return markdown.
-27. Do not return code fences.
-28. Validate the final JSON structure before returning.
+23. Return well-formed Markdown only.
+24. Do not return reasoning or chain-of-thought.
+25. Do not wrap the whole response in a code fence.
+26. Use Markdown tables to present financial fields and KPI values.
+27. Show missing/unavailable values as `N/A`.
+28. Validate the Markdown structure before returning.
 
 ## Extraction Process
 
@@ -60,11 +60,7 @@ Extract every canonical financial field defined in the Financial Fields Registry
 
 Populate every field defined in the registry category wise.
 
-If unavailable:
-
-```json
-"value": null
-```
+If unavailable, report the value as `N/A`.
 
 ### Step 3 – KPI Calculation
 
@@ -74,51 +70,56 @@ For every KPI in the KPI Registry:
 2. Read `formula`.
 3. Verify all required fields exist and are non-null.
 4. Calculate KPI strictly according to the registry formula.
-5. If any required field is unavailable:
-
-```json
-"kpi_value": null
-```
+5. If any required field is unavailable, report the KPI value as `N/A`.
 
 ### Step 4 – Validation
 
 Before returning:
 
-1. Ensure all Financial Fields Registry fields exist.
-2. Ensure all KPI Registry IDs exist.
-3. Ensure JSON is valid.
-4. Ensure all values are numeric or null.
+1. Ensure all Financial Fields Registry fields are listed.
+2. Ensure all KPI Registry IDs are listed.
+3. Ensure the Markdown is well-formed (valid headings and tables).
+4. Ensure all values are numeric or `N/A`.
 5. Ensure no KPI is missing.
 6. Ensure no field is missing.
 
 ## Output Format
 
-```json
-{
-  "company_name": "",
-  "fiscal_year": "",
-  "currency": "",
-  "financial_fields": {
-    "<all_financial_fields>": null
-  },
-  "kpis": [
-    "kpi_category" : "",
-    "kpi" : { "<all_kpi_ids>": null }
-  ]
-}
+Return a Markdown document with this structure:
+
 ```
+# <Company Name> — KPI Analysis
+
+**Fiscal Year:** <fiscal_year>
+**Reporting Currency:** <currency>
+
+## Financial Fields
+
+| Field | Value |
+| --- | --- |
+| <financial_field> | <value or N/A> |
+| ... | ... |
+
+## KPIs
+
+### <KPI Category>
+
+| KPI | Value |
+| --- | --- |
+| <kpi_id> | <value or N/A> |
+| ... | ... |
+```
+
+Repeat the `### <KPI Category>` section for every category in the KPI Registry.
 
 ## Final Response Requirement
 
-Return exactly one JSON object.
+Return the Markdown document only.
 
-Return JSON only.
-
-- No explanations.
-- No markdown.
-- No comments.
-- No reasoning.
-- No code fences.
+- No reasoning or chain-of-thought.
+- No `<think>` blocks.
+- No surrounding code fences.
+- No commentary before or after the document.
 
 # Top 500 Financial Analysis KPIs (Consolidated by Categories)
 

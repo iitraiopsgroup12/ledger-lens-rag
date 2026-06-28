@@ -4,7 +4,6 @@ No live DB, LLM, or storage: the repository, LLM, and storage are mocked, and th
 graph runs against an in-memory checkpointer.
 """
 
-import json
 from unittest.mock import MagicMock
 
 import pytest
@@ -25,13 +24,25 @@ KPI_PROMPT_TEMPLATE = "KPI SYSTEM PROMPT"
 from app.kpi.registry import KpiRegistry
 from app.kpi.service import KPIService
 
-KPI_JSON = {
-    "company_name": "Tata Consultancy Services",
-    "fiscal_year": "2024",
-    "currency": "INR",
-    "financial_fields": {"net_profit": 42000},
-    "kpis": [{"kpi_category": "Profitability", "kpi": {"net_profit_margin": 25}}],
-}
+KPI_MARKDOWN = """# Tata Consultancy Services — KPI Analysis
+
+**Fiscal Year:** 2024
+**Reporting Currency:** INR
+
+## Financial Fields
+
+| Field | Value |
+| --- | --- |
+| net_profit | 42000 |
+
+## KPIs
+
+### Profitability
+
+| KPI | Value |
+| --- | --- |
+| net_profit_margin | 25 |
+"""
 
 
 @pytest.fixture()
@@ -85,7 +96,7 @@ def llm() -> MagicMock:
 
     def fake_complete(system: str, user: str) -> str:
         if system == KPI_PROMPT_TEMPLATE:
-            return json.dumps(KPI_JSON)
+            return KPI_MARKDOWN
         return "YES"  # finance guardrail -> finance-related
 
     m.complete.side_effect = fake_complete
@@ -171,7 +182,7 @@ class TestHappyPath:
         result = service.chat("a@firm.com", "TCS", "Show me TCS profitability ratios", session_id="s1")
 
         assert result.status == "completed"
-        assert result.kpis == KPI_JSON
+        assert result.kpis == KPI_MARKDOWN.strip()
         assert result.company["symbol"] == "TCS"
         storage.retrieve.assert_called_once()
         assert any(s["node"] == "generate_kpis" for s in result.steps)
@@ -200,7 +211,7 @@ class TestHumanInTheLoop:
             "a@firm.com", "hitl", first.pending_approval["interrupt_id"], "approve"
         )
         assert resumed.status == "completed"
-        assert resumed.kpis == KPI_JSON
+        assert resumed.kpis == KPI_MARKDOWN.strip()
 
     def test_pause_then_reject(self, repo, llm, storage, registry):
         service = _service(repo, llm, storage, registry, require_approval=True)
@@ -215,34 +226,34 @@ class TestHumanInTheLoop:
         assert resumed.kpis is None
 
 
-class TestBadJson:
-    def test_unparseable_llm_output(self, repo, llm, storage, registry):
-        def bad(system, user):
+class TestMarkdownOutput:
+    def test_empty_llm_output_errors(self, repo, llm, storage, registry):
+        def blank(system, user):
             if system == KPI_PROMPT_TEMPLATE:
-                return "I'm sorry, here are the KPIs but not as JSON."
+                return "   "
             return "YES"
 
-        llm.complete.side_effect = bad
+        llm.complete.side_effect = blank
         service = _service(repo, llm, storage, registry, require_approval=False)
 
         result = service.chat("a@firm.com", "TCS", "TCS profitability", session_id="bad")
 
         assert result.status == "error"
-        assert "JSON" in (result.message or "")
+        assert "empty" in (result.message or "").lower()
 
-    def test_fenced_json_is_repaired(self, repo, llm, storage, registry):
-        def fenced(system, user):
+    def test_think_block_and_fence_are_stripped(self, repo, llm, storage, registry):
+        def noisy(system, user):
             if system == KPI_PROMPT_TEMPLATE:
-                return "```json\n" + json.dumps(KPI_JSON) + "\n```"
+                return "<think>computing KPIs...</think>\n```markdown\n" + KPI_MARKDOWN + "\n```"
             return "YES"
 
-        llm.complete.side_effect = fenced
+        llm.complete.side_effect = noisy
         service = _service(repo, llm, storage, registry, require_approval=False)
 
         result = service.chat("a@firm.com", "TCS", "TCS profitability", session_id="fence")
 
         assert result.status == "completed"
-        assert result.kpis == KPI_JSON
+        assert result.kpis == KPI_MARKDOWN.strip()
 
 
 class TestApiRoutes:
@@ -265,7 +276,7 @@ class TestApiRoutes:
             took_ms=12.0,
         )
         fake.resume.return_value = KpiResult(
-            session_id="default", status="completed", kpis=KPI_JSON, took_ms=8.0
+            session_id="default", status="completed", kpis=KPI_MARKDOWN.strip(), took_ms=8.0
         )
 
         app.dependency_overrides[get_kpi_service] = lambda: fake

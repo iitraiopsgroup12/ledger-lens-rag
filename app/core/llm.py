@@ -15,44 +15,13 @@ _PROMPT = ChatPromptTemplate.from_messages(
     [
         (
             "system",
-            """You are an expert Chartered Financial Analyst (CFA), forensic accountant, and corporate finance specialist. Your role is to provide precise, rigorous, and objective analysis of corporate financial data, including balance sheets, income statements, cash flow statements, quarterly earnings reports (10-Q/6-K), annual reports (10-K/20-F), company announcements, and equity research analyst reports.
+            """You are an expert Chartered Financial Analyst (CFA), and corporate finance specialist. Your role is to provide precise, rigorous, and objective analysis of corporate financial data, including balance sheets, income statements, cash flow statements, quarterly earnings reports, annual reports, company announcements, and equity research analyst reports.
 
-Execute your analysis according to the following strict operational mandates:
+Use the following context to answer the user's question:
+{context}
 
-1. ABSOLUTE DATA ANCHORING & FACTUALITY:
-- Base every single number, metric, and conclusion strictly on the provided context or text.
-- If a financial metric or data point is not explicitly stated in the source text, state: "Data not available in the provided text." Never extrapolate or assume values.
-- Differentiate clearly between audited historical financial data, unaudited quarterly updates, and forward-looking management guidance or analyst estimates.
-
-2. NUMERICAL ACCURACY & CONTEXT:
-- Maintain strict mathematical consistency. Double-check all year-over-year (YoY) and quarter-over-quarter (QoQ) calculations.
-- Always include the relevant currency, scale (thousands, millions, billions), and reporting period (e.g., "Q3 2026", "FY2025") for every metric cited.
-- When evaluating lines on financial statements, explicitly distinguish between GAAP/IFRS measures and non-GAAP/non-IFRS measures (e.g., Adjusted EBITDA).
-
-3. ANALYTICAL BREADTH & STRUCTURE:
-- Structure multi-part financial queries into logical sections: Liquidity/Solvency, Profitability, Operational Efficiency, and Valuation.
-- Identify and highlight material risks, restatements, or accounting policy changes mentioned in the footnotes or disclosures.
-- Cross-reference qualitative management commentary (MD&A) with quantitative financial statement line items to verify alignment.
-
-4. TONE AND OUTPUT FORMAT:
-- Maintain an objective, neutral, institutional, and highly analytical tone. Avoid speculative or emotional language.
-- Present dense quantitative data and comparisons using Markdown tables to maximize scannability.
-- Use precise financial terminology (e.g., "diluted EPS", "free cash flow yield", "working capital compression") instead of generic terms.
-
-1. If the user query is ambiguous, explain the financial assumptions you are making to resolve the ambiguity before delivering your final calculation or breakdown.
-
-!Important Note to generate Response
-Respond using clean, standard Markdown formatting. Do not include raw internal reasoning tags like <think> or </think>. 
-
-Use the following structural guidelines:
-- Use '##' for main sections and '###' for sub-sections.
-- Use bolding (**keyword**) for key terms to improve readability.
-- Use bullet points (*) or numbered lists for breakdowns.
-- Use standard Markdown tables for data comparisons.
-- Avoid raw text blocks; ensure paragraph breaks are clean.
-
-"""
-            "Context:\n{context}",
+CRITICAL RULE: Do not repeat, quote, or include the text of the context in your final response. Provide only the direct financial answer. Do not include introductory text like "Based on the context provided".
+""",
         ),
         ("human", "{question}"),
     ]
@@ -154,23 +123,33 @@ class HuggingFaceChatLLM(BaseLLM):
         llm = HuggingFaceEndpoint(
             repo_id="deepseek-ai/DeepSeek-R1-0528",
             task="text-generation",
-            max_new_tokens=512,
+            # DeepSeek-R1 is a reasoning model: it spends a large, variable budget
+            # inside <think>...</think> BEFORE emitting the answer. 1024 tokens was
+            # exhausted mid-reasoning, so the model never reached the Markdown and
+            # the response came back as a truncated, unclosed <think> block. Give it
+            # enough headroom to finish thinking AND produce the full report.
+            max_new_tokens=8192,
             do_sample=False,
+            temperature=0,
             repetition_penalty=1.03,
             huggingfacehub_api_token=api_key,
             provider="auto",  # let Hugging Face choose the best provider for you
             timeout=timeout,
         )
 
+        # Bind the default `text` response_format strategy so the HF router
+        # returns full, structured multi-line output instead of collapsing the
+        # generation onto a single line.
         self._model = ChatHuggingFace(llm=llm)
         self._chain = _PROMPT | self._model
 
     def generate(self, question: str, context: list[Document]) -> str:
         context_text = "\n\n---\n\n".join(d.page_content for d in context)
         logger.info("Generating answer via HuggingFace from %d context doc(s)", len(context))
+        self._model.bind(response_format={"type": "text"})
         response = self._chain.invoke({"question": question, "context": context_text})
-        logger.info("Generated response from HuggingFace Response %s", response.model_dump_json())
-        return response.content
+        logger.info("Generated response from HuggingFace Response %s", response)
+        return _as_text(response.content)
 
     def complete(self, system: str, user: str) -> str:
         logger.info("Completing via HuggingFace (system=%d chars, user=%d chars)", len(system), len(user))
@@ -178,6 +157,9 @@ class HuggingFaceChatLLM(BaseLLM):
         # A non-streaming request makes the HF router wait for the full response
         # and return 504 Gateway Time-out on slow/long generations; streaming
         # keeps the connection alive and sidesteps that gateway limit.
+        # The KPI workflow now expects a Markdown report, so request `text`
+        # (not `json_object`, which would force JSON-only output).
+        self._model.bind(response_format={"type": "text"})
         chain = _COMPLETE_PROMPT | self._model
         parts: list[str] = []
         for chunk in chain.stream({"system": system, "user": user}):
