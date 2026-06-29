@@ -8,6 +8,7 @@ def main():
         "app.main:app",
         host=os.environ.get("HOST", "0.0.0.0"),
         port=int(os.environ.get("PORT", "8080")),
+        log_level=os.environ.get("LOG_LEVEL", "info").lower(),
         reload=bool(os.environ.get("RELOAD", "")),
         # Chat requests can take a while to process; keep connections alive
         # long enough (30 min default) so slow responses aren't dropped.

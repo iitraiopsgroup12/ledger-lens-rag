@@ -68,22 +68,31 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- if or .Values.persistence.enabled .Values.volumeMounts }}
+          {{- if or .Values.persistence.enabled .Values.storagePersistence.enabled .Values.volumeMounts }}
           volumeMounts:
             {{- if .Values.persistence.enabled }}
             - name: data
               mountPath: {{ .Values.persistence.mountPath }}
             {{- end }}
+            {{- if .Values.storagePersistence.enabled }}
+            - name: storage
+              mountPath: {{ .Values.storagePersistence.mountPath }}
+            {{- end }}
             {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
           {{- end }}
-      {{- if or .Values.persistence.enabled .Values.volumes }}
+      {{- if or .Values.persistence.enabled .Values.storagePersistence.enabled .Values.volumes }}
       volumes:
         {{- if .Values.persistence.enabled }}
         - name: data
           persistentVolumeClaim:
             claimName: {{ include "ledger-lens-rag-chart.pvcName" . }}
+        {{- end }}
+        {{- if .Values.storagePersistence.enabled }}
+        - name: storage
+          persistentVolumeClaim:
+            claimName: {{ include "ledger-lens-rag-chart.storagePvcName" . }}
         {{- end }}
         {{- with .Values.volumes }}
         {{- toYaml . | nindent 8 }}

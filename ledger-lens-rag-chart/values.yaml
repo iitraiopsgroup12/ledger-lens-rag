@@ -11,20 +11,64 @@ image:
   # This sets the pull policy for images.
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "1.0"
+  tag: "1.4"
 
 # Port the application listens on inside the container (see main.py / PORT env var).
 containerPort: 8080
 
 # Plain (non-secret) environment variables for the container.
+# Mirrors the non-secret items in .env. Secret values (API keys, DB password)
+# are declared under secretEnv below and injected via envFrom.
 env:
-  LLM_PROVIDER: "huggingface"
+  # Logging verbosity: DEBUG | INFO | WARNING | ERROR | CRITICAL
+  LOG_LEVEL: "DEBUG"
+
+  # CORS allowed origins: "*" (any client) or a comma-separated list, e.g.
+  # "https://app.example.com,https://admin.example.com". Credentials are
+  # auto-disabled when this is "*" (browser requirement).
+  CORS_ALLOW_ORIGINS: "*"
+
+  # Provider selection: "openai" | "anthropic" | "google" | "huggingface"
+  LLM_PROVIDER: "anthropic"
+
+  # Embedding provider, independent of LLM_PROVIDER so you can mix stacks (e.g.
+  # Anthropic LLM + OpenAI embeddings). Leave empty to follow LLM_PROVIDER.
+  EMBEDDING_PROVIDER: "huggingface"
+
+  # OpenAI
+  EMBEDDING_MODEL: "text-embedding-3-small"
+  LLM_MODEL: "gpt-4o-mini"
+
+  # Anthropic
+  ANTHROPIC_LLM_MODEL: "claude-opus-4-8"
+  ANTHROPIC_EMBEDDING_MODEL: "voyage-3"
+
+  # Google
+  GOOGLE_LLM_MODEL: "gemini-2.0-flash"
+  GOOGLE_EMBEDDING_MODEL: "models/text-embedding-004"
+
+  # HuggingFace
   HUGGINGFACE_LLM_MODEL: "Qwen/Qwen3.6-35B-A3B"
   HUGGINGFACE_EMBEDDING_MODEL: "sentence-transformers/all-MiniLM-L6-v2"
+
+  # Retrieval / chunking
   FAISS_INDEX_PATH: "/data/faiss_index"
   DEFAULT_TOP_K: "4"
   CHUNK_SIZE: "1000"
   CHUNK_OVERLAP: "200"
+  # Max seconds to wait for an LLM generation before timing out (default 1 hour)
+  LLM_TIMEOUT: "3600"
+
+  # KPI workflow document storage (nse_data_storage.LocalFileStorage)
+  STORAGE_DIR: "/home/storage"
+
+  # PostgreSQL metadata DB (used by the /kpi workflow). DATABASE_URL is assembled
+  # from these unless DATABASE_URL is set explicitly. POSTGRES_PASSWORD is a
+  # secret and is declared under secretEnv below.
+  POSTGRES_HOST: "10.88.0.2"
+  POSTGRES_PORT: "5432"
+  POSTGRES_USER: "postgres"
+  POSTGRES_DB: "iitr-db-test"
 
 # Secret-backed environment variables (API keys). The referenced Secret must contain
 # these keys; set existingSecret to use a Secret you manage outside this chart, or
@@ -39,6 +83,7 @@ secretEnv:
     - VOYAGE_API_KEY
     - GOOGLE_API_KEY
     - HUGGINGFACE_API_KEY
+    - POSTGRES_PASSWORD
   # Values used to create the Secret when existingSecret is not set. Leave blank and
   # supply via `--set secretEnv.values.OPENAI_API_KEY=...` or a separate values file —
   # never commit real secrets here.
@@ -48,7 +93,9 @@ secretEnv:
 imagePullSecrets: []
 # This is to override the chart name.
 nameOverride: ""
-fullnameOverride: ""
+# Force all resource names to exactly this value. Without it Helm prefixes the
+# release name to the chart name (e.g. ledger-lens-rag-ledger-lens-rag-chart).
+fullnameOverride: "ledger-lens-rag"
 
 # This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
 serviceAccount:
@@ -69,8 +116,11 @@ podAnnotations: {}
 # For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
 podLabels: {}
 
-podSecurityContext: {}
-  # fsGroup: 2000
+# fsGroup matches the image's app user (uid/gid 1000, see Dockerfile) so the
+# mounted PVCs are group-owned and writable by the non-root process. Without
+# this, mkdir on /data/storage fails with a permission error.
+podSecurityContext:
+  fsGroup: 1000
 
 securityContext: {}
   # capabilities:
@@ -86,10 +136,11 @@ service:
   type: NodePort
   # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
   port: 8080
+  nodePort: 38080
 
 # This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
 ingress:
-  enabled: false
+  enabled: true
   className: ""
   annotations: {}
     # kubernetes.io/ingress.class: nginx
@@ -182,6 +233,19 @@ autoscaling:
 persistence:
   enabled: true
   mountPath: "/data/faiss_index"
+  size: 5Gi
+  accessMode: ReadWriteOnce
+  storageClassName: ""
+  # Set to use an existing PVC instead of creating one.
+  existingClaim: ""
+
+# Persistent storage for KPI workflow documents (see env.STORAGE_DIR above).
+# Mounted at storagePersistence.mountPath, which must match STORAGE_DIR. The
+# pod's fsGroup (podSecurityContext.fsGroup) makes this volume writable by the
+# non-root app user.
+storagePersistence:
+  enabled: true
+  mountPath: "/data/storage"
   size: 5Gi
   accessMode: ReadWriteOnce
   storageClassName: ""

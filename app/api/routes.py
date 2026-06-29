@@ -7,6 +7,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 
 from app.api.dependencies import get_kpi_service, get_pipeline
+from app.config import settings
 from app.api.schemas import (
     HealthResponse,
     IngestRequest,
@@ -173,7 +174,7 @@ async def query(
 async def query_with_file(
     query: str = Form(..., min_length=1, description="Question to answer"),
     file: UploadFile = File(..., description="Document to parse: .xlsx, .docx, .txt, .pdf, .csv, .xml"),
-    top_k: int = Form(4, ge=1, le=20),
+    top_k: int = Form(settings.default_top_k, ge=1, le=100),
     generate_answer: bool = Form(True),
     filter: str | None = Form(None, description="Optional metadata filter, JSON-encoded"),
     isIngest: bool = Form(False, description="Persist the file into the vector store before answering"),

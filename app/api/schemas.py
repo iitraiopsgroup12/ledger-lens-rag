@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
 
+from app.config import settings
+
 
 class IngestDocumentRequest(BaseModel):
     id: str | None = Field(None, description="Optional document identifier")
@@ -24,7 +26,9 @@ class IngestResponse(BaseModel):
 
 class QueryRequest(BaseModel):
     query: str = Field(..., min_length=1, description="Question to answer")
-    top_k: int = Field(4, ge=1, le=20, description="Number of chunks to retrieve")
+    top_k: int = Field(
+        settings.default_top_k, ge=1, le=20, description="Number of chunks to retrieve"
+    )
     generate_answer: bool = Field(True, description="Whether to generate an LLM answer")
     filter: dict | None = Field(None, description="Optional metadata filter")
 

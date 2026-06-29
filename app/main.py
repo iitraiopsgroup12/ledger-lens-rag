@@ -8,13 +8,19 @@ from fastapi.responses import JSONResponse
 
 from app.api.dependencies import build_pipeline
 from app.api.routes import router
+from app.config import settings
 from app.exceptions import RAGException, generic_exception_handler, rag_exception_handler
-from dotenv import load_dotenv
 
-load_dotenv()
+# Only a dev environment (APP_ENV=dev) loads the local .env into the process
+# environment; in production we rely solely on injected env vars. This also
+# populates os.environ for any library that reads keys directly.
+if settings.is_dev:
+    from dotenv import load_dotenv
+
+    load_dotenv()
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=settings.log_level.upper(),
     format="%(asctime)s %(levelname)s %(name)s — %(message)s",
 )
 logger = logging.getLogger(__name__)
@@ -69,10 +75,19 @@ def custom_openapi() -> dict:
 app.openapi = custom_openapi
 
 
+# Browsers reject "*" origins together with credentials, so force credentials
+# off whenever any origin is the wildcard.
+_cors_origins = settings.cors_allow_origins_list
+_cors_credentials = settings.cors_allow_credentials and "*" not in _cors_origins
+if settings.cors_allow_credentials and not _cors_credentials:
+    logger.warning(
+        "CORS_ALLOW_CREDENTIALS ignored because CORS_ALLOW_ORIGINS includes '*' "
+        "(browsers forbid this combination)."
+    )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=_cors_origins,
+    allow_credentials=_cors_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )

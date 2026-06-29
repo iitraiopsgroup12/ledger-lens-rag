@@ -21,6 +21,14 @@ Use the following context to answer the user's question:
 {context}
 
 CRITICAL RULE: Do not repeat, quote, or include the text of the context in your final response. Provide only the direct financial answer. Do not include introductory text like "Based on the context provided".
+
+FORMATTING — return the answer as clean, well-structured GitHub-Flavored Markdown:
+- Use `##`/`###` headings to organise multi-part answers.
+- Present figures, comparisons, and line items as Markdown tables (`| Column | Value |`).
+- Use **bold** for key metrics and bullet lists for enumerations.
+- Show missing or unavailable values as `N/A`.
+- Do NOT wrap the whole response in a code fence, and do NOT include reasoning or chain-of-thought.
+- For a short, single-fact answer, a concise sentence or two is fine — do not force tables or headings where they add no value.
 """,
         ),
         ("human", "{question}"),
@@ -60,7 +68,7 @@ class OpenAIChatLLM(BaseLLM):
         context_text = "\n\n---\n\n".join(d.page_content for d in context)
         logger.info("Generating answer via OpenAI from %d context doc(s)", len(context))
         response = self._chain.invoke({"question": question, "context": context_text})
-        return response.content
+        return _as_text(response.content)
 
     def complete(self, system: str, user: str) -> str:
         logger.info("Completing via OpenAI (system=%d chars, user=%d chars)", len(system), len(user))
@@ -85,7 +93,7 @@ class AnthropicChatLLM(BaseLLM):
         context_text = "\n\n---\n\n".join(d.page_content for d in context)
         logger.info("Generating answer via Anthropic from %d context doc(s)", len(context))
         response = self._chain.invoke({"question": question, "context": context_text})
-        return response.content
+        return _as_text(response.content)
 
     def complete(self, system: str, user: str) -> str:
         logger.info("Completing via Anthropic (system=%d chars, user=%d chars)", len(system), len(user))
@@ -107,7 +115,7 @@ class GoogleChatLLM(BaseLLM):
         context_text = "\n\n---\n\n".join(d.page_content for d in context)
         logger.info("Generating answer via Google from %d context doc(s)", len(context))
         response = self._chain.invoke({"question": question, "context": context_text})
-        return response.content
+        return _as_text(response.content)
 
     def complete(self, system: str, user: str) -> str:
         logger.info("Completing via Google (system=%d chars, user=%d chars)", len(system), len(user))

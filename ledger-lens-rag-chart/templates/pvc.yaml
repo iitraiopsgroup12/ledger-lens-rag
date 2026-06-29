@@ -15,3 +15,21 @@ spec:
   storageClassName: {{ .Values.persistence.storageClassName }}
   {{- end }}
 {{- end }}
+{{- if and .Values.storagePersistence.enabled (not .Values.storagePersistence.existingClaim) }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "ledger-lens-rag-chart.storagePvcName" . }}
+  labels:
+    {{- include "ledger-lens-rag-chart.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.storagePersistence.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.storagePersistence.size }}
+  {{- if .Values.storagePersistence.storageClassName }}
+  storageClassName: {{ .Values.storagePersistence.storageClassName }}
+  {{- end }}
+{{- end }}
